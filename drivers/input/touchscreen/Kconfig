@@ -1359,4 +1359,13 @@ source "drivers/input/touchscreen/nt36xxx/Kconfig"
 source "drivers/input/touchscreen/nvt_touch_e7s/Kconfig"
 source "drivers/input/touchscreen/synaptics_dsx_e7s/Kconfig"
 
+config TOUCHSCREEN_COMMON
+	bool "Common touchscreen interface to interact with userspace"
+	default y
+	help
+	  Say Y here if you want to control touchpanel features via
+	  /sys/touchpanel.
+
+	  If unsure, say N.
+
 endif
