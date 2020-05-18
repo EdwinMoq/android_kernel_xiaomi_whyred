@@ -571,7 +571,7 @@ def gen_blueprints(
 
     f.write('    "%s",\n' % generic_src)
     f.write('    "%s",\n' % arch_src)
-    f.write('    "%s",\n' % techpack_src)
+    #f.write('    "%s",\n' % techpack_src)
     f.write(']\n')
     f.write('\n')
 
@@ -648,7 +648,7 @@ def gen_blueprints(
     f.write('        "--gen_dir $(genDir) " +\n')
     f.write('        "--arch_asm_kbuild $(location %s) " +\n' % rel_arch_asm_kbuild)
     f.write('        "--arch_include_uapi $(locations %s) " +\n' % arch_src)
-    f.write('        "--techpack_include_uapi $(locations %s) " +\n' % techpack_src)
+    #f.write('        "--techpack_include_uapi $(locations %s) " +\n' % techpack_src)
     f.write('        "--asm_generic_kbuild $(location %s) " +\n' % rel_asm_generic_kbuild)
     f.write('        "blueprints " +\n')
     f.write('        "# $(in)",\n')
@@ -680,7 +680,7 @@ def gen_blueprints(
     f.write('        "--gen_dir $(genDir) " +\n')
     f.write('        "--arch_asm_kbuild $(location %s) " +\n' % rel_arch_asm_kbuild)
     f.write('        "--arch_include_uapi $(locations %s) " +\n' % arch_src)
-    f.write('        "--techpack_include_uapi $(locations %s) " +\n' % techpack_src)
+    #f.write('        "--techpack_include_uapi $(locations %s) " +\n' % techpack_src)
     f.write('        "--asm_generic_kbuild $(location %s) " +\n' % rel_asm_generic_kbuild)
     f.write('        "headers " +\n')
     f.write('        "--old_gen_headers_bp $(location %s) " +\n' % old_gen_headers_bp)
@@ -893,11 +893,11 @@ def main():
       required=True,
       nargs='*',
       help='The list of arch/<arch>/include/uapi header files.')
-  parser.add_argument(
-      '--techpack_include_uapi',
-      required=True,
-      nargs='*',
-      help='The list of techpack/*/include/uapi header files.')
+  #parser.add_argument(
+  #    '--techpack_include_uapi',
+  #    required=True,
+  #    nargs='*',
+  #    help='The list of techpack/*/include/uapi header files.')
 
   # The modes.
 

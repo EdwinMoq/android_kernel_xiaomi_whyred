@@ -958,22 +958,6 @@ gen_headers_out_arm = [
 
     // From techpack/*/include/uapi/*/**/*.h
 
-    "media/cam_cpas.h",
-    "media/cam_custom.h",
-    "media/cam_defs.h",
-    "media/cam_fd.h",
-    "media/cam_icp.h",
-    "media/cam_isp.h",
-    "media/cam_isp_ife.h",
-    "media/cam_isp_vfe.h",
-    "media/cam_jpeg.h",
-    "media/cam_lrme.h",
-    "media/cam_req_mgr.h",
-    "media/cam_sensor.h",
-    "media/cam_sync.h",
-    "media/cam_tfe.h",
-    "media/cam_ope.h",
-    "media/cam_isp_tfe.h",
 ]
 
 genrule {
@@ -991,7 +975,6 @@ genrule {
         "--gen_dir $(genDir) " +
         "--arch_asm_kbuild $(location arch/arm/include/uapi/asm/Kbuild) " +
         "--arch_include_uapi $(locations arch/arm/include/uapi/**/*.h) " +
-        "--techpack_include_uapi $(locations techpack/*/include/uapi/*/**/*.h) " +
         "--asm_generic_kbuild $(location include/uapi/asm-generic/Kbuild.asm) " +
         "blueprints " +
         "# $(in)",
@@ -1016,7 +999,6 @@ genrule {
         "--gen_dir $(genDir) " +
         "--arch_asm_kbuild $(location arch/arm/include/uapi/asm/Kbuild) " +
         "--arch_include_uapi $(locations arch/arm/include/uapi/**/*.h) " +
-        "--techpack_include_uapi $(locations techpack/*/include/uapi/*/**/*.h) " +
         "--asm_generic_kbuild $(location include/uapi/asm-generic/Kbuild.asm) " +
         "headers " +
         "--old_gen_headers_bp $(location gen_headers_arm.bp) " +
