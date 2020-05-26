@@ -1884,7 +1884,8 @@ static int mdss_fb_blank_blank(struct msm_fb_data_type *mfd,
 		pr_debug("No change in power state\n");
 		return 0;
 	}
-
+	pr_err("%s Early return from Blank\n", __func__);
+	return 0;
 	mutex_lock(&mfd->update.lock);
 	mfd->update.type = NOTIFY_TYPE_SUSPEND;
 	mfd->update.is_suspend = 1;
@@ -2085,7 +2086,6 @@ static int mdss_fb_blank_sub(int blank_mode, struct fb_info *info,
 	case FB_BLANK_HSYNC_SUSPEND:
 	case FB_BLANK_POWERDOWN:
 	default:
-		req_power_state = MDSS_PANEL_POWER_OFF;
 		pr_debug("blank powerdown called\n");
 		ret = mdss_fb_blank_blank(mfd, req_power_state);
 		break;
