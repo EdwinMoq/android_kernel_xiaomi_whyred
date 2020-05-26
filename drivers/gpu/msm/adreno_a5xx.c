@@ -358,7 +358,8 @@ static void a5xx_protect_init(struct adreno_device *adreno_dev)
 	if (adreno_is_a530(adreno_dev) || adreno_is_a540(adreno_dev))
 		_setprotectreg(device, reg + 1, 0x40000, ilog2(0x20000));
 	else
-		_setprotectreg(device, reg + 1, 0x40000, ilog2(0x10000));
+	/*For SMMU, base:0x40000 >> 2 = 0x10000, count:0x10000 >> 2 = 0x4000*/
+		_setprotectreg(device, reg + 1, 0x10000, ilog2(0x4000));
 }
 
 /*
