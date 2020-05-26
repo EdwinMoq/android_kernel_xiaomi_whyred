@@ -2266,7 +2266,7 @@ static void clear_cycle_counter(struct fg_dev *fg)
 	}
 	rc = fg_sram_write(fg, CYCLE_COUNT_WORD, CYCLE_COUNT_OFFSET,
 			(u8 *)&chip->cyc_ctr.count,
-			sizeof(chip->cyc_ctr.count) / sizeof(u8 *),
+			(int)(sizeof(chip->cyc_ctr.count) / sizeof(u16)),
 			FG_IMA_DEFAULT);
 	if (rc < 0)
 		pr_err("failed to clear cycle counter rc=%d\n", rc);

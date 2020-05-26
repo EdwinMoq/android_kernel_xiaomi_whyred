@@ -121,6 +121,7 @@ static inline int __init rpm_smd_regulator_driver_init(void) { return 0; }
 
 #endif /* CONFIG_REGULATOR_RPM_SMD */
 
+#if 0
 #ifdef CONFIG_DEBUG_FS
 
 static void rpm_vreg_create_debugfs(struct rpm_regulator *reg);
@@ -130,5 +131,6 @@ static void rpm_vreg_create_debugfs(struct rpm_regulator *reg);
 static inline void rpm_vreg_create_debugfs(struct rpm_regulator *reg)
 {
 }
+#endif
 #endif
 #endif

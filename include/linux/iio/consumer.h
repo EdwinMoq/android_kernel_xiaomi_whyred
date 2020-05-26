@@ -225,7 +225,7 @@ int iio_read_channel_average_raw(struct iio_channel *chan, int *val);
  * do the appropriate transformation.
  */
 int iio_read_channel_processed(struct iio_channel *chan, int *val);
-
+int iio_write_channel_processed(struct iio_channel *chan, int val);
 /**
  * iio_write_channel_attribute() - Write values to the device attribute.
  * @chan:	The channel being queried.

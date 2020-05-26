@@ -3138,8 +3138,8 @@ static const char *const gcc_debug_mux_parent_names[] = {
 
 static int gcc_debug_mux_sels[] = {
 	0x0C0,		/* cpu_cc_debug_mux */
-			/* mmss_cc_debug_mux TODO */
-			/* gpu_cc_debug_mux TODO*/
+	0x000,		/* mmss_cc_debug_mux TODO */
+	0x000,		/* gpu_cc_debug_mux TODO*/
 	0x000,		/* snoc_clk */
 	0x00E,		/* cnoc_clk */
 	0x198,		/* cnoc_periph_clk */
