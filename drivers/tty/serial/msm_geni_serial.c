@@ -182,7 +182,7 @@ struct msm_geni_serial_port {
 	int loopback;
 	int wakeup_irq;
 	unsigned char wakeup_byte;
-	struct wakeup_source geni_wake;
+	struct wakeup_source *geni_wake;
 	void *ipc_log_tx;
 	void *ipc_log_rx;
 	void *ipc_log_pwr;
@@ -236,7 +236,8 @@ static int uart_line_id;
 
 static struct msm_geni_serial_port msm_geni_console_port;
 static struct msm_geni_serial_port msm_geni_serial_ports[GENI_UART_NR_PORTS];
-static void msm_geni_serial_handle_isr(struct uart_port *uport);
+static void msm_geni_serial_handle_isr(struct uart_port *uport,
+				unsigned long *flags, bool is_irq_masked);
 
 /*
  * The below API is required to check if uport->lock (spinlock)
@@ -297,8 +298,8 @@ static void msm_geni_serial_enable_interrupts(struct uart_port *uport)
 	}
 }
 
-/* Disable the interrupts in order to do polling in an atomic contexts. */
-static void msm_geni_serial_disable_interrupts(struct uart_port *uport)
+/* Try disabling interrupts in order to do polling in an atomic contexts. */
+static bool msm_serial_try_disable_interrupts(struct uart_port *uport)
 {
 	unsigned int geni_m_irq_en, geni_s_irq_en;
 	unsigned int dma_m_irq_en, dma_s_irq_en;
@@ -309,7 +310,7 @@ static void msm_geni_serial_disable_interrupts(struct uart_port *uport)
 	 * by framework as we can rely on ISR.
 	 */
 	if (!msm_geni_serial_spinlocked(uport))
-		return;
+		return false;
 
 	geni_m_irq_en = geni_read_reg_nolog(uport->membase, SE_GENI_M_IRQ_EN);
 	geni_s_irq_en = geni_read_reg_nolog(uport->membase, SE_GENI_S_IRQ_EN);
@@ -335,6 +336,8 @@ static void msm_geni_serial_disable_interrupts(struct uart_port *uport)
 		geni_write_reg_nolog(dma_s_irq_en, uport->membase,
 							SE_DMA_RX_IRQ_EN);
 	}
+
+	return true;
 }
 
 /*
@@ -343,17 +346,17 @@ static void msm_geni_serial_disable_interrupts(struct uart_port *uport)
  * in a non-atomic context. This API decides wheather to poll for
  * interrupt or depend on the isr based on in_atomic() call.
  */
-bool geni_wait_for_cmd_done(struct uart_port *uport)
+bool geni_wait_for_cmd_done(struct uart_port *uport, bool is_irq_masked)
 {
 	struct msm_geni_serial_port *msm_port = GET_DEV_PORT(uport);
 	unsigned long timeout = POLL_ITERATIONS;
-	unsigned long ret;
+	unsigned long flags = 0;
 
 	/*
 	 * We need to do polling if spinlock is taken
 	 * by framework as we cannot rely on ISR.
 	 */
-	if (msm_geni_serial_spinlocked(uport)) {
+	if (is_irq_masked) {
 		/*
 		 * Polling is done for 1000 iterrations with
 		 * 10 usecs interval which in total accumulates
@@ -361,13 +364,13 @@ bool geni_wait_for_cmd_done(struct uart_port *uport)
 		 */
 		if (msm_port->m_cmd) {
 			while (!msm_port->m_cmd_done && timeout > 0) {
-				msm_geni_serial_handle_isr(uport);
+				msm_geni_serial_handle_isr(uport, &flags, true);
 				timeout--;
 				udelay(100);
 			}
 		} else if (msm_port->s_cmd) {
 			while (!msm_port->s_cmd_done && timeout > 0) {
-				msm_geni_serial_handle_isr(uport);
+				msm_geni_serial_handle_isr(uport, &flags, true);
 				timeout--;
 				udelay(100);
 			}
@@ -375,16 +378,16 @@ bool geni_wait_for_cmd_done(struct uart_port *uport)
 	} else {
 		/* Waiting for 10 milli second for interrupt to be fired */
 		if (msm_port->m_cmd)
-			ret = wait_for_completion_timeout
+			timeout = wait_for_completion_timeout
 					(&msm_port->m_cmd_timeout,
 				msecs_to_jiffies(POLL_WAIT_TIMEOUT_MSEC));
 		else if (msm_port->s_cmd)
-			ret = wait_for_completion_timeout
+			timeout = wait_for_completion_timeout
 					(&msm_port->s_cmd_timeout,
 				msecs_to_jiffies(POLL_WAIT_TIMEOUT_MSEC));
 	}
 
-	return ret ? 0 : 1;
+	return timeout ? 0 : 1;
 }
 
 static void msm_geni_serial_config_port(struct uart_port *uport, int cfg_flags)
@@ -870,7 +873,7 @@ static void msm_geni_serial_poll_put_char(struct uart_port *uport,
 	 * Ensure FIFO write goes through before polling for status but.
 	 */
 	mb();
-	msm_geni_serial_disable_interrupts(uport);
+	msm_serial_try_disable_interrupts(uport);
 	msm_geni_serial_poll_tx_done(uport);
 	msm_geni_serial_enable_interrupts(uport);
 }
@@ -933,7 +936,7 @@ __msm_geni_serial_console_write(struct uart_port *uport, const char *s,
 		mb();
 		i += chars_to_write;
 	}
-	msm_geni_serial_disable_interrupts(uport);
+	msm_serial_try_disable_interrupts(uport);
 	msm_geni_serial_poll_tx_done(uport);
 	msm_geni_serial_enable_interrupts(uport);
 }
@@ -947,6 +950,7 @@ static void msm_geni_serial_console_write(struct console *co, const char *s,
 	unsigned long flags;
 	unsigned int geni_status;
 	bool timeout;
+	bool is_irq_masked;
 	int irq_en;
 
 	/* Max 1 port supported as of now */
@@ -965,14 +969,19 @@ static void msm_geni_serial_console_write(struct console *co, const char *s,
 	geni_status = readl_relaxed(uport->membase + SE_GENI_STATUS);
 
 	/* Cancel the current write to log the fault */
-	if (!locked) {
+	if ((geni_status & M_GENI_CMD_ACTIVE) && !locked) {
 		port->m_cmd_done = false;
 		port->m_cmd = true;
 		reinit_completion(&port->m_cmd_timeout);
-		msm_geni_serial_disable_interrupts(uport);
+		is_irq_masked = msm_serial_try_disable_interrupts(uport);
 		geni_cancel_m_cmd(uport->membase);
 
-		timeout = geni_wait_for_cmd_done(uport);
+		/*
+		 * console should be in polling mode. Hence directly pass true
+		 * as argument for wait_for_cmd_done here to handle cancel tx
+		 * in polling mode.
+		 */
+		timeout = geni_wait_for_cmd_done(uport, true);
 		if (timeout) {
 			IPC_LOG_MSG(port->console_log,
 				"%s: tx_cancel failed 0x%x\n",
@@ -981,7 +990,7 @@ static void msm_geni_serial_console_write(struct console *co, const char *s,
 
 			reinit_completion(&port->m_cmd_timeout);
 			geni_abort_m_cmd(uport->membase);
-			timeout = geni_wait_for_cmd_done(uport);
+			timeout = geni_wait_for_cmd_done(uport, true);
 			if (timeout)
 				IPC_LOG_MSG(port->console_log,
 				"%s: tx abort failed 0x%x\n", __func__,
@@ -996,7 +1005,7 @@ static void msm_geni_serial_console_write(struct console *co, const char *s,
 		/* It seems we can interrupt existing transfers unless all data
 		 * has been sent, in which case we need to look for done first.
 		 */
-		msm_geni_serial_disable_interrupts(uport);
+		msm_serial_try_disable_interrupts(uport);
 		msm_geni_serial_poll_tx_done(uport);
 		msm_geni_serial_enable_interrupts(uport);
 
@@ -1026,7 +1035,6 @@ static int handle_rx_console(struct uart_port *uport,
 {
 	int i, c;
 	unsigned char *rx_char;
-	unsigned long flags;
 	struct tty_port *tport;
 	struct msm_geni_serial_port *msm_port = GET_DEV_PORT(uport);
 
@@ -1054,18 +1062,6 @@ static int handle_rx_console(struct uart_port *uport,
 				tty_insert_flip_char(tport, rx_char[c], flag);
 		}
 	}
-	if (!drop_rx) {
-		/*
-		 * Driver acquiring port->lock in isr function and calling
-		 * tty_flip_buffer_push() which in turn will wait for
-		 * another lock from framework __queue_work function.
-		 * release the port lock before calling tty_flip_buffer_push()
-		 * to avoid deadlock scenarios.
-		 */
-		spin_unlock_irqrestore(&uport->lock, flags);
-		tty_flip_buffer_push(tport);
-		spin_lock_irqsave(&uport->lock, flags);
-	}
 	return 0;
 }
 #else
@@ -1086,7 +1082,7 @@ static int msm_geni_serial_prep_dma_tx(struct uart_port *uport)
 	struct circ_buf *xmit = &uport->state->xmit;
 	unsigned int xmit_size;
 	unsigned int dma_dbg;
-	bool timeout;
+	bool timeout, is_irq_masked;
 	int ret = 0;
 
 	xmit_size = uart_circ_chars_pending(xmit);
@@ -1117,13 +1113,13 @@ static int msm_geni_serial_prep_dma_tx(struct uart_port *uport)
 		reinit_completion(&msm_port->m_cmd_timeout);
 
 		/*
-		 * Disabling the interrupts before giving the
+		 * Try disabling interrupts before giving the
 		 * cancel command as this might be in an atomic context.
 		 */
-		msm_geni_serial_disable_interrupts(uport);
+		is_irq_masked = msm_serial_try_disable_interrupts(uport);
 		geni_cancel_m_cmd(uport->membase);
 
-		timeout = geni_wait_for_cmd_done(uport);
+		timeout = geni_wait_for_cmd_done(uport, is_irq_masked);
 		if (timeout) {
 			IPC_LOG_MSG(msm_port->console_log,
 			"%s: tx_cancel fail 0x%x\n", __func__,
@@ -1138,7 +1134,8 @@ static int msm_geni_serial_prep_dma_tx(struct uart_port *uport)
 			/* Give abort command as cancel command failed */
 			geni_abort_m_cmd(uport->membase);
 
-			timeout = geni_wait_for_cmd_done(uport);
+			timeout = geni_wait_for_cmd_done(uport,
+							 is_irq_masked);
 			if (timeout) {
 				IPC_LOG_MSG(msm_port->console_log,
 				"%s: tx abort failed 0x%x\n", __func__,
@@ -1160,7 +1157,8 @@ static int msm_geni_serial_prep_dma_tx(struct uart_port *uport)
 				geni_write_reg_nolog(1, uport->membase,
 						SE_DMA_TX_FSM_RST);
 
-				timeout = geni_wait_for_cmd_done(uport);
+				timeout = geni_wait_for_cmd_done(uport,
+							is_irq_masked);
 				if (timeout)
 					IPC_LOG_MSG(msm_port->ipc_log_misc,
 					"%s: tx fsm reset failed\n", __func__);
@@ -1243,7 +1241,7 @@ exit_start_tx:
 static void stop_tx_sequencer(struct uart_port *uport)
 {
 	unsigned int geni_status;
-	bool timeout;
+	bool timeout, is_irq_masked;
 	unsigned int dma_dbg;
 	struct msm_geni_serial_port *port = GET_DEV_PORT(uport);
 
@@ -1258,9 +1256,15 @@ static void stop_tx_sequencer(struct uart_port *uport)
 	port->m_cmd_done = false;
 	port->m_cmd = true;
 	reinit_completion(&port->m_cmd_timeout);
+	/*
+	 * Try to mask the interrupts before giving the
+	 * cancel command as this might be in an atomic context
+	 * from framework driver.
+	 */
+	is_irq_masked = msm_serial_try_disable_interrupts(uport);
 	geni_cancel_m_cmd(uport->membase);
 
-	timeout = geni_wait_for_cmd_done(uport);
+	timeout = geni_wait_for_cmd_done(uport, is_irq_masked);
 	if (timeout) {
 		IPC_LOG_MSG(port->console_log, "%s: tx_cancel failed 0x%x\n",
 		__func__, geni_read_reg_nolog(uport->membase, SE_GENI_STATUS));
@@ -1271,7 +1275,7 @@ static void stop_tx_sequencer(struct uart_port *uport)
 		reinit_completion(&port->m_cmd_timeout);
 		geni_abort_m_cmd(uport->membase);
 
-		timeout = geni_wait_for_cmd_done(uport);
+		timeout = geni_wait_for_cmd_done(uport, is_irq_masked);
 		if (timeout) {
 			IPC_LOG_MSG(port->console_log,
 				"%s: tx abort failed 0x%x\n", __func__,
@@ -1290,7 +1294,8 @@ static void stop_tx_sequencer(struct uart_port *uport)
 			geni_write_reg_nolog(1, uport->membase,
 						SE_DMA_TX_FSM_RST);
 
-			timeout = geni_wait_for_cmd_done(uport);
+			timeout = geni_wait_for_cmd_done(uport,
+							 is_irq_masked);
 			if (timeout)
 				IPC_LOG_MSG(port->ipc_log_misc,
 				"%s: tx fsm reset failed\n", __func__);
@@ -1302,6 +1307,8 @@ static void stop_tx_sequencer(struct uart_port *uport)
 			port->tx_dma = (dma_addr_t)NULL;
 		}
 	}
+	/* Unmask the interrupts once the cancel operation is done. */
+	msm_geni_serial_enable_interrupts(uport);
 	port->m_cmd = false;
 	port->xmit_size = 0;
 
@@ -1441,8 +1448,9 @@ static void msm_geni_serial_set_manual_flow(bool enable,
 static void stop_rx_sequencer(struct uart_port *uport)
 {
 	unsigned int geni_status;
-	bool timeout;
+	bool timeout, is_irq_masked;
 	struct msm_geni_serial_port *port = GET_DEV_PORT(uport);
+	unsigned long flags = 0;
 
 	IPC_LOG_MSG(port->ipc_log_misc, "%s\n", __func__);
 
@@ -1462,10 +1470,10 @@ static void stop_rx_sequencer(struct uart_port *uport)
 	IPC_LOG_MSG(port->ipc_log_misc, "%s: Start 0x%x\n",
 		    __func__, geni_status);
 	/*
-	 * Disabling the interrupts before giving the
+	 * Try disabling interrupts before giving the
 	 * cancel command as this might be in an atomic context.
 	 */
-	msm_geni_serial_disable_interrupts(uport);
+	is_irq_masked = msm_serial_try_disable_interrupts(uport);
 	geni_cancel_s_cmd(uport->membase);
 
 	/*
@@ -1473,21 +1481,35 @@ static void stop_rx_sequencer(struct uart_port *uport)
 	 * cancel control bit.
 	 */
 	mb();
-	timeout = geni_wait_for_cmd_done(uport);
+	timeout = geni_wait_for_cmd_done(uport, is_irq_masked);
 	if (timeout) {
+		bool is_rx_active;
 		geni_status = geni_read_reg_nolog(uport->membase,
 							SE_GENI_STATUS);
+		/*
+		 * Possible that stop_rx is called from system resume context
+		 * for console usecase. In early resume, irq remains disabled
+		 * in the system. call msm_geni_serial_handle_isr to clear
+		 * the interrupts.
+		 */
+		is_rx_active = geni_status & S_GENI_CMD_ACTIVE;
 		IPC_LOG_MSG(port->ipc_log_misc,
-			"%s cancel failed 0x%x\n",  __func__, geni_status);
+			    "%s cancel failed is_rx_active:%d 0x%x\n",
+			    __func__, is_rx_active, geni_status);
 		IPC_LOG_MSG(port->console_log,
-			"%s cancel failed 0x%x\n",  __func__, geni_status);
+			    "%s cancel failed is_rx_active:%d 0x%x\n",
+			    __func__, is_rx_active, geni_status);
+		if (uart_console(uport) && !is_rx_active) {
+			msm_geni_serial_handle_isr(uport, &flags, true);
+			goto exit_rx_seq;
+		}
 		port->s_cmd_done = false;
 		reinit_completion(&port->s_cmd_timeout);
 		geni_abort_s_cmd(uport->membase);
 		/* Ensure this goes through before polling. */
 		mb();
 
-		timeout = geni_wait_for_cmd_done(uport);
+		timeout = geni_wait_for_cmd_done(uport, is_irq_masked);
 		if (timeout) {
 			geni_status = geni_read_reg_nolog(uport->membase,
 							SE_GENI_STATUS);
@@ -1577,7 +1599,7 @@ static int msm_geni_serial_handle_rx(struct uart_port *uport, bool drop_rx)
 	rx_last = rx_fifo_status & RX_LAST;
 	if (rx_fifo_wc)
 		ret = port->handle_rx(uport, rx_fifo_wc, rx_last_byte_valid,
-							rx_last, drop_rx);
+						rx_last, drop_rx);
 	return ret;
 }
 
@@ -1759,7 +1781,9 @@ static int msm_geni_serial_handle_dma_tx(struct uart_port *uport)
 	return 0;
 }
 
-static void msm_geni_serial_handle_isr(struct uart_port *uport)
+static void msm_geni_serial_handle_isr(struct uart_port *uport,
+				       unsigned long *flags,
+				       bool is_irq_masked)
 {
 	unsigned int m_irq_status;
 	unsigned int s_irq_status;
@@ -1833,13 +1857,28 @@ static void msm_geni_serial_handle_isr(struct uart_port *uport)
 				"%s.sirq 0x%x break:%d\n",
 				__func__, s_irq_status, uport->icount.brk);
 		}
-
-		if (s_irq_status & (S_CMD_CANCEL_EN | S_CMD_ABORT_EN))
+		/*
+		 * In case of stop_rx handling there is a chance
+		 * for RX data can come in parallel. set drop_rx to
+		 * avoid data push to framework from handle_rx_console()
+		 * API for stop_rx case.
+		 */
+		if (s_irq_status & (S_CMD_CANCEL_EN | S_CMD_ABORT_EN)) {
 			s_cmd_done = true;
+			drop_rx = true;
+		}
 
 		if (s_irq_status & (S_RX_FIFO_WATERMARK_EN |
-							S_RX_FIFO_LAST_EN))
+							S_RX_FIFO_LAST_EN)) {
 			msm_geni_serial_handle_rx(uport, drop_rx);
+			if (!drop_rx && !is_irq_masked) {
+				spin_unlock_irqrestore(&uport->lock, *flags);
+				tty_flip_buffer_push(tport);
+				spin_lock_irqsave(&uport->lock, *flags);
+			} else if (!drop_rx) {
+				tty_flip_buffer_push(tport);
+			}
+		}
 	} else {
 		dma_tx_status = geni_read_reg_nolog(uport->membase,
 							SE_DMA_TX_IRQ_STAT);
@@ -1933,7 +1972,7 @@ static irqreturn_t msm_geni_serial_isr(int isr, void *dev)
 	unsigned long flags;
 
 	spin_lock_irqsave(&uport->lock, flags);
-	msm_geni_serial_handle_isr(uport);
+	msm_geni_serial_handle_isr(uport, &flags, false);
 	spin_unlock_irqrestore(&uport->lock, flags);
 	return IRQ_HANDLED;
 }
@@ -1955,7 +1994,7 @@ static irqreturn_t msm_geni_wakeup_isr(int isr, void *dev)
 					__func__, port->wakeup_byte);
 		port->edge_count = 0;
 		tty_flip_buffer_push(tty->port);
-		__pm_wakeup_event(&port->geni_wake, WAKEBYTE_TIMEOUT_MSEC);
+		__pm_wakeup_event(port->geni_wake, WAKEBYTE_TIMEOUT_MSEC);
 	} else if (port->edge_count < 2) {
 		port->edge_count++;
 	}
@@ -2102,7 +2141,7 @@ static int msm_geni_serial_port_setup(struct uart_port *uport)
 		 * it else we could end up in data loss scenarios.
 		 */
 		msm_port->xfer_mode = FIFO_MODE;
-		msm_geni_serial_disable_interrupts(uport);
+		msm_serial_try_disable_interrupts(uport);
 		msm_geni_serial_poll_tx_done(uport);
 		msm_geni_serial_enable_interrupts(uport);
 		se_get_packing_config(8, 1, false, &cfg0, &cfg1);
@@ -3145,7 +3184,17 @@ static int msm_geni_serial_probe(struct platform_device *pdev)
 		}
 	}
 
-	wakeup_source_init(&dev_port->geni_wake, dev_name(&pdev->dev));
+	if (!is_console) {
+		dev_port->geni_wake = wakeup_source_register(uport->dev,
+						dev_name(&pdev->dev));
+		if (!dev_port->geni_wake) {
+			dev_err(&pdev->dev,
+				"Failed to register wakeup_source\n");
+			ret = -ENOMEM;
+			goto exit_geni_serial_probe;
+		}
+	}
+
 	dev_port->tx_fifo_depth = DEF_FIFO_DEPTH_WORDS;
 	dev_port->rx_fifo_depth = DEF_FIFO_DEPTH_WORDS;
 	dev_port->tx_fifo_width = DEF_FIFO_WIDTH_BITS;
@@ -3159,7 +3208,7 @@ static int msm_geni_serial_probe(struct platform_device *pdev)
 	if (uport->irq < 0) {
 		ret = uport->irq;
 		dev_err(&pdev->dev, "Failed to get IRQ %d\n", ret);
-		goto exit_geni_serial_probe;
+		goto exit_wakeup_unregister;
 	}
 
 	dev_port->name = devm_kasprintf(uport->dev, GFP_KERNEL,
@@ -3170,7 +3219,7 @@ static int msm_geni_serial_probe(struct platform_device *pdev)
 	if (ret) {
 		dev_err(uport->dev, "%s: Failed to get IRQ ret %d\n",
 							__func__, ret);
-		goto exit_geni_serial_probe;
+		goto exit_wakeup_unregister;
 	}
 
 	uport->private_data = (void *)drv;
@@ -3203,10 +3252,20 @@ static int msm_geni_serial_probe(struct platform_device *pdev)
 	dev_port->port_setup = false;
 	ret = msm_geni_serial_get_ver_info(uport);
 	if (ret)
-		goto exit_geni_serial_probe;
+		goto exit_wakeup_unregister;
 
 	ret = uart_add_one_port(drv, uport);
+	if (ret)
+		goto exit_wakeup_unregister;
 
+	IPC_LOG_MSG(dev_port->ipc_log_misc, "%s: port:%s irq:%d\n", __func__,
+		    uport->name, uport->irq);
+
+	return 0;
+
+exit_wakeup_unregister:
+	if (!is_console)
+		wakeup_source_unregister(dev_port->geni_wake);
 exit_geni_serial_probe:
 	IPC_LOG_MSG(dev_port->ipc_log_misc, "%s: ret:%d\n", __func__, ret);
 	return ret;
@@ -3218,7 +3277,8 @@ static int msm_geni_serial_remove(struct platform_device *pdev)
 	struct uart_driver *drv =
 			(struct uart_driver *)port->uport.private_data;
 
-	wakeup_source_trash(&port->geni_wake);
+	if (!uart_console(&port->uport))
+		wakeup_source_unregister(port->geni_wake);
 	uart_remove_one_port(drv, &port->uport);
 	if (port->rx_dma) {
 		geni_se_iommu_free_buf(port->wrapper_dev, &port->rx_dma,
@@ -3263,7 +3323,7 @@ static int msm_geni_serial_runtime_suspend(struct device *dev)
 		enable_irq(port->wakeup_irq);
 	}
 	IPC_LOG_MSG(port->ipc_log_pwr, "%s:\n", __func__);
-	__pm_relax(&port->geni_wake);
+	__pm_relax(port->geni_wake);
 exit_runtime_suspend:
 	return ret;
 }
@@ -3278,8 +3338,8 @@ static int msm_geni_serial_runtime_resume(struct device *dev)
 	 * Do an unconditional relax followed by a stay awake in case the
 	 * wake source is activated by the wakeup isr.
 	 */
-	__pm_relax(&port->geni_wake);
-	__pm_stay_awake(&port->geni_wake);
+	__pm_relax(port->geni_wake);
+	__pm_stay_awake(port->geni_wake);
 	if (port->wakeup_irq > 0)
 		disable_irq(port->wakeup_irq);
 	/*
@@ -3291,7 +3351,7 @@ static int msm_geni_serial_runtime_resume(struct device *dev)
 	ret = se_geni_resources_on(&port->serial_rsc);
 	if (ret) {
 		dev_err(dev, "%s: Error ret %d\n", __func__, ret);
-		__pm_relax(&port->geni_wake);
+		__pm_relax(port->geni_wake);
 		goto exit_runtime_resume;
 	}
 	start_rx_sequencer(&port->uport);
