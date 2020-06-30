@@ -955,9 +955,6 @@ gen_headers_out_arm64 = [
 
     // From techpack/*/include/uapi/*/**/*.h
 
-
-    "linux/hbtp_input.h",
-
 ]
 
 genrule {
