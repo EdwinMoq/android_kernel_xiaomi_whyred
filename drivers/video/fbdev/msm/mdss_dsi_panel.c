@@ -36,7 +36,7 @@ void mdss_dsi_panel_pwm_cfg(struct mdss_dsi_ctrl_pdata *ctrl)
 
 	ctrl->pwm_bl = pwm_request(ctrl->pwm_lpg_chan, "lcd-bklt");
 	if (ctrl->pwm_bl == NULL || IS_ERR(ctrl->pwm_bl)) {
-		pr_err("%s: Error: lpg_chan=%d pwm request failed",
+		pr_err("%s: Error: lpg_chan=%d pwm request failed\n",
 				__func__, ctrl->pwm_lpg_chan);
 	}
 	ctrl->pwm_enabled = 0;
@@ -1154,7 +1154,7 @@ static int mdss_dsi_parse_dcs_cmds(struct device_node *np,
 		dchdr = (struct dsi_ctrl_hdr *)bp;
 		dchdr->dlen = ntohs(dchdr->dlen);
 		if (dchdr->dlen > len) {
-			pr_err("%s: dtsi cmd=%x error, len=%d",
+			pr_err("%s: dtsi cmd=%x error, len=%d\n",
 				__func__, dchdr->dtype, dchdr->dlen);
 			goto exit_free;
 		}
@@ -1166,7 +1166,7 @@ static int mdss_dsi_parse_dcs_cmds(struct device_node *np,
 	}
 
 	if (len != 0) {
-		pr_err("%s: dcs_cmd=%x len=%d error!",
+		pr_err("%s: dcs_cmd=%x len=%d error!\n",
 				__func__, buf[0], blen);
 		goto exit_free;
 	}
@@ -1403,7 +1403,7 @@ static int mdss_dsi_parse_hdr_settings(struct device_node *np,
 				hdr_prop->display_primaries,
 				DISPLAY_PRIMARIES_COUNT);
 		if (rc) {
-			pr_info("%s:%d, Unable to read color primaries,rc:%u",
+			pr_info("%s:%d, Unable to read color primaries,rc:%u\n",
 					__func__, __LINE__,
 					hdr_prop->hdr_enabled = false);
 			}
@@ -1412,7 +1412,7 @@ static int mdss_dsi_parse_hdr_settings(struct device_node *np,
 			"qcom,mdss-dsi-panel-peak-brightness",
 			&(hdr_prop->peak_brightness));
 		if (rc) {
-			pr_info("%s:%d, Unable to read hdr brightness, rc:%u",
+			pr_info("%s:%d, Unable to read hdr brightness, rc:%u\n",
 				__func__, __LINE__, rc);
 			hdr_prop->hdr_enabled = false;
 		}
@@ -1421,7 +1421,7 @@ static int mdss_dsi_parse_hdr_settings(struct device_node *np,
 			"qcom,mdss-dsi-panel-blackness-level",
 			&(hdr_prop->blackness_level));
 		if (rc) {
-			pr_info("%s:%d, Unable to read hdr brightness, rc:%u",
+			pr_info("%s:%d, Unable to read hdr brightness, rc:%u\n",
 				__func__, __LINE__, rc);
 			hdr_prop->hdr_enabled = false;
 		}
@@ -1881,12 +1881,12 @@ static void mdss_dsi_parse_roi_alignment(struct device_node *np,
 	data = of_find_property(np, "qcom,panel-roi-alignment", &len);
 	len /= sizeof(u32);
 	if (!data || (len != 6)) {
-		pr_debug("%s: Panel roi alignment not found", __func__);
+		pr_debug("%s: Panel roi alignment not found\n", __func__);
 	} else {
 		int rc = of_property_read_u32_array(np,
 				"qcom,panel-roi-alignment", value, len);
 		if (rc)
-			pr_debug("%s: Error reading panel roi alignment values",
+			pr_debug("%s: Error reading panel roi alignment values\n",
 					__func__);
 		else {
 			timing->roi_alignment.xstart_pix_align = value[0];
@@ -1897,7 +1897,7 @@ static void mdss_dsi_parse_roi_alignment(struct device_node *np,
 			timing->roi_alignment.min_height = value[5];
 		}
 
-		pr_debug("%s: ROI alignment: [%d, %d, %d, %d, %d, %d]",
+		pr_debug("%s: ROI alignment: [%d, %d, %d, %d, %d, %d]\n",
 			__func__, timing->roi_alignment.xstart_pix_align,
 			timing->roi_alignment.width_pix_align,
 			timing->roi_alignment.ystart_pix_align,
@@ -2147,9 +2147,6 @@ static void mdss_dsi_parse_partial_update_caps(struct device_node *np,
 	else if (data && !strcmp(data, "dual_roi"))
 		pinfo->partial_update_supported =
 			PU_DUAL_ROI;
-	else if (data && !strcmp(data, "none"))
-		pinfo->partial_update_supported =
-			PU_NOT_SUPPORTED;
 	else
 		pinfo->partial_update_supported =
 			PU_NOT_SUPPORTED;
@@ -2191,7 +2188,7 @@ static int mdss_dsi_parse_panel_features(struct device_node *np,
 
 	pinfo->ulps_suspend_enabled = of_property_read_bool(np,
 		"qcom,suspend-ulps-enabled");
-	pr_info("%s: ulps during suspend feature %s", __func__,
+	pr_info("%s: ulps during suspend feature %s\n", __func__,
 		(pinfo->ulps_suspend_enabled ? "enabled" : "disabled"));
 
 	mdss_dsi_parse_dms_config(np, ctrl);
@@ -2603,7 +2600,7 @@ static int mdss_dsi_panel_timing_from_dt(struct device_node *np,
 
 	data = of_get_property(np, "qcom,mdss-dsi-panel-timings", &len);
 	if ((!data) || (len != 12)) {
-		pr_debug("%s:%d, Unable to read Phy timing settings",
+		pr_debug("%s:%d, Unable to read Phy timing settings\n",
 		       __func__, __LINE__);
 	} else {
 		for (i = 0; i < len; i++)
@@ -2613,7 +2610,7 @@ static int mdss_dsi_panel_timing_from_dt(struct device_node *np,
 
 	data = of_get_property(np, "qcom,mdss-dsi-panel-timings-phy-v2", &len);
 	if ((!data) || (len != 40)) {
-		pr_debug("%s:%d, Unable to read phy-v2 lane timing settings",
+		pr_debug("%s:%d, Unable to read phy-v2 lane timing settings\n",
 		       __func__, __LINE__);
 	} else {
 		for (i = 0; i < len; i++)

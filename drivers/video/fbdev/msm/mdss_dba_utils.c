@@ -143,7 +143,7 @@ static ssize_t connected_show(struct device *dev,
 		return -EINVAL;
 	}
 
-	ret = snprintf(buf, PAGE_SIZE, "%d\n", udata->hpd_state);
+	ret = scnprintf(buf, PAGE_SIZE, "%d\n", udata->hpd_state);
 	pr_debug("'%d'\n", udata->hpd_state);
 
 	return ret;
@@ -167,7 +167,7 @@ static ssize_t video_mode_show(struct device *dev,
 		return -EINVAL;
 	}
 
-	ret = snprintf(buf, PAGE_SIZE, "%d\n", udata->current_vic);
+	ret = scnprintf(buf, PAGE_SIZE, "%d\n", udata->current_vic);
 	pr_debug("'%d'\n", udata->current_vic);
 
 	return ret;
@@ -228,7 +228,7 @@ static ssize_t hpd_show(struct device *dev,
 		return -EINVAL;
 	}
 
-	ret = snprintf(buf, PAGE_SIZE, "%d\n", udata->hpd_state);
+	ret = scnprintf(buf, PAGE_SIZE, "%d\n", udata->hpd_state);
 	pr_debug("'%d'\n", udata->hpd_state);
 
 	return ret;

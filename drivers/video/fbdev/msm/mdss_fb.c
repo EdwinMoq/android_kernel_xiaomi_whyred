@@ -1,17 +1,9 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Core MDSS framebuffer driver.
  *
  * Copyright (C) 2007 Google Incorporated
  * Copyright (c) 2008-2020, The Linux Foundation. All rights reserved.
- *
- * This software is licensed under the terms of the GNU General Public
- * License version 2, as published by the Free Software Foundation, and
- * may be copied, distributed, and modified under those terms.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
  */
 
 #define pr_fmt(fmt)	"%s: " fmt, __func__
@@ -334,40 +326,40 @@ static ssize_t msm_fb_type_show(struct device *dev,
 
 	switch (mfd->panel.type) {
 	case NO_PANEL:
-		ret = snprintf(buf, PAGE_SIZE, "no panel\n");
+		ret = scnprintf(buf, PAGE_SIZE, "no panel\n");
 		break;
 	case HDMI_PANEL:
-		ret = snprintf(buf, PAGE_SIZE, "hdmi panel\n");
+		ret = scnprintf(buf, PAGE_SIZE, "hdmi panel\n");
 		break;
 	case LVDS_PANEL:
-		ret = snprintf(buf, PAGE_SIZE, "lvds panel\n");
+		ret = scnprintf(buf, PAGE_SIZE, "lvds panel\n");
 		break;
 	case DTV_PANEL:
-		ret = snprintf(buf, PAGE_SIZE, "dtv panel\n");
+		ret = scnprintf(buf, PAGE_SIZE, "dtv panel\n");
 		break;
 	case MIPI_VIDEO_PANEL:
-		ret = snprintf(buf, PAGE_SIZE, "mipi dsi video panel\n");
+		ret = scnprintf(buf, PAGE_SIZE, "mipi dsi video panel\n");
 		break;
 	case MIPI_CMD_PANEL:
-		ret = snprintf(buf, PAGE_SIZE, "mipi dsi cmd panel\n");
+		ret = scnprintf(buf, PAGE_SIZE, "mipi dsi cmd panel\n");
 		break;
 	case WRITEBACK_PANEL:
-		ret = snprintf(buf, PAGE_SIZE, "writeback panel\n");
+		ret = scnprintf(buf, PAGE_SIZE, "writeback panel\n");
 		break;
 	case EDP_PANEL:
-		ret = snprintf(buf, PAGE_SIZE, "edp panel\n");
+		ret = scnprintf(buf, PAGE_SIZE, "edp panel\n");
 		break;
 	case SPI_PANEL:
-		ret = snprintf(buf, PAGE_SIZE, "spi panel\n");
+		ret = scnprintf(buf, PAGE_SIZE, "spi panel\n");
 		break;
 	case RGB_PANEL:
-		ret = snprintf(buf, PAGE_SIZE, "rgb panel\n");
+		ret = scnprintf(buf, PAGE_SIZE, "rgb panel\n");
 		break;
 	case DP_PANEL:
-		ret = snprintf(buf, PAGE_SIZE, "dp panel\n");
+		ret = scnprintf(buf, PAGE_SIZE, "dp panel\n");
 		break;
 	default:
-		ret = snprintf(buf, PAGE_SIZE, "unknown panel\n");
+		ret = scnprintf(buf, PAGE_SIZE, "unknown panel\n");
 		break;
 	}
 
@@ -441,7 +433,7 @@ static ssize_t msm_fb_split_show(struct device *dev,
 	struct fb_info *fbi = dev_get_drvdata(dev);
 	struct msm_fb_data_type *mfd = (struct msm_fb_data_type *)fbi->par;
 
-	ret = snprintf(buf, PAGE_SIZE, "%d %d\n",
+	ret = scnprintf(buf, PAGE_SIZE, "%d %d\n",
 		       mfd->split_fb_left, mfd->split_fb_right);
 	return ret;
 }
@@ -2936,7 +2928,7 @@ static void mdss_fb_power_setting_idle(struct msm_fb_data_type *mfd)
 		if (ret < 0)
 			ret = -ERESTARTSYS;
 		else if (!ret)
-			pr_err("%s wait for power_set_comp timeout %d %d",
+			pr_err("%s wait for power_set_comp timeout %d %d\n",
 				__func__, ret, mfd->is_power_setting);
 		if (ret <= 0) {
 			mfd->is_power_setting = false;
@@ -3723,7 +3715,7 @@ static int __mdss_fb_perform_commit(struct msm_fb_data_type *mfd)
 		pr_debug("Triggering dyn mode switch to %d\n", new_dsi_mode);
 		ret = mfd->mdp.mode_switch(mfd, new_dsi_mode);
 		if (ret)
-			pr_err("DSI mode switch has failed");
+			pr_err("DSI mode switch has failed\n");
 		else
 			mfd->pending_switch = false;
 	}
@@ -3919,13 +3911,11 @@ static int mdss_fb_check_var(struct fb_var_screeninfo *var,
 		struct mdss_panel_info *panel_info;
 		int rc;
 
-		panel_info = kzalloc(sizeof(struct mdss_panel_info),
-				GFP_KERNEL);
+		panel_info = kmemdup(mfd->panel_info,
+				sizeof(struct mdss_panel_info), GFP_KERNEL);
 		if (!panel_info)
 			return -ENOMEM;
 
-		memcpy(panel_info, mfd->panel_info,
-				sizeof(struct mdss_panel_info));
 		mdss_fb_var_to_panelinfo(var, panel_info);
 		rc = mdss_fb_send_panel_event(mfd, MDSS_EVENT_CHECK_PARAMS,
 			panel_info);
@@ -4255,7 +4245,7 @@ static int mdss_fb_async_position_update_ioctl(struct fb_info *info,
 	rc = copy_to_user(argp, &update_pos,
 			sizeof(struct mdp_position_update));
 	if (rc)
-		pr_err("copy to user for layers failed");
+		pr_err("copy to user for layers failed\n");
 
 end:
 	kfree(layer_list);
@@ -4824,7 +4814,7 @@ static int mdss_fb_atomic_commit_ioctl(struct fb_info *info,
 			sizeof(int));
 
 		if (rc)
-			pr_err("copy to user for output fence failed");
+			pr_err("copy to user for output fence failed\n");
 	}
 
 err:
@@ -4894,7 +4884,7 @@ static int mdss_fb_immediate_mode_switch(struct msm_fb_data_type *mfd, u32 mode)
 	else
 		tranlated_mode = MIPI_VIDEO_PANEL;
 
-	pr_debug("%s: Request to switch to %d,", __func__, tranlated_mode);
+	pr_debug("%s: Request to switch to %d,\n", __func__, tranlated_mode);
 
 	ret = mdss_fb_switch_check(mfd, tranlated_mode);
 	if (ret)

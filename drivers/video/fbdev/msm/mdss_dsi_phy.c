@@ -197,7 +197,7 @@ static int calc_clk_prepare(struct dsi_phy_t_clk_param *clk_params,
 	div_s64_rem(temp_multiple, clk_params->bitclk_mbps, &frac);
 	clk_prep_actual = div_s64((intermediate + frac), multiplier);
 
-	pr_debug("CLK_PREPARE:mipi_min=%d, mipi_max=%d, rec_min=%d, rec_max=%d",
+	pr_debug("CLK_PREPARE:mipi_min=%d, mipi_max=%d, rec_min=%d, rec_max=%d\n",
 		 t->mipi_min, t->mipi_max, t->rec_min, t->rec_max);
 	pr_debug(" program_value=%d, actual=%lld\n",
 		 t->program_value, clk_prep_actual);

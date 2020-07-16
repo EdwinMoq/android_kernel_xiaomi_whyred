@@ -447,7 +447,6 @@ static int mdss_mdp_video_intf_recovery(void *data, int event)
 static int mdss_mdp_video_wait_one_frame(struct mdss_mdp_ctl *ctl)
 {
 	u32 frame_time, frame_rate;
-	int ret = 0;
 	struct mdss_panel_data *pdata = ctl->panel_data;
 
 	if (pdata == NULL) {
@@ -462,7 +461,7 @@ static int mdss_mdp_video_wait_one_frame(struct mdss_mdp_ctl *ctl)
 
 	msleep(frame_time);
 
-	return ret;
+	return 0;
 }
 
 static void mdss_mdp_video_avr_vtotal_setup(struct mdss_mdp_ctl *ctl,
@@ -1042,12 +1041,12 @@ static int mdss_mdp_video_intfs_stop(struct mdss_mdp_ctl *ctl,
 		pr_err("Intf %d not in use\n", (inum + MDSS_MDP_INTF0));
 		return -ENODEV;
 	}
-	pr_debug("stop ctl=%d video Intf #%d base=%pK", ctl->num, ctx->intf_num,
-			ctx->base);
+	pr_debug("stop ctl=%d video Intf #%d base=%pK\n", ctl->num,
+		 ctx->intf_num,	ctx->base);
 
 	ret = mdss_mdp_video_ctx_stop(ctl, pinfo, ctx);
 	if (ret) {
-		pr_err("mdss_mdp_video_ctx_stop failed for intf: %d",
+		pr_err("mdss_mdp_video_ctx_stop failed for intf: %d\n",
 				ctx->intf_num);
 		return -EPERM;
 	}
@@ -1060,12 +1059,12 @@ static int mdss_mdp_video_intfs_stop(struct mdss_mdp_ctl *ctl,
 			pr_err("Intf %d not in use\n", (inum + MDSS_MDP_INTF0));
 			return -ENODEV;
 		}
-		pr_debug("stop ctl=%d video Intf #%d base=%pK", ctl->num,
+		pr_debug("stop ctl=%d video Intf #%d base=%pK\n", ctl->num,
 				sctx->intf_num, sctx->base);
 
 		ret = mdss_mdp_video_ctx_stop(ctl, pinfo, sctx);
 		if (ret) {
-			pr_err("mdss_mdp_video_ctx_stop failed for intf: %d",
+			pr_err("mdss_mdp_video_ctx_stop failed for intf: %d\n",
 					sctx->intf_num);
 			return -EPERM;
 		}
@@ -2262,7 +2261,7 @@ static int mdss_mdp_video_intfs_setup(struct mdss_mdp_ctl *ctl,
 					(inum + MDSS_MDP_INTF0));
 			return -EBUSY;
 		}
-		pr_debug("video Intf #%d base=%pK", ctx->intf_num, ctx->base);
+		pr_debug("video Intf #%d base=%pK\n", ctx->intf_num, ctx->base);
 		ctx->ref_cnt++;
 	} else {
 		pr_err("Invalid intf number: %d\n", (inum + MDSS_MDP_INTF0));
@@ -2295,7 +2294,7 @@ static int mdss_mdp_video_intfs_setup(struct mdss_mdp_ctl *ctl,
 					(inum + MDSS_MDP_INTF0));
 			return -EBUSY;
 		}
-		pr_debug("video Intf #%d base=%pK", ctx->intf_num, ctx->base);
+		pr_debug("video Intf #%d base=%pK\n", ctx->intf_num, ctx->base);
 		ctx->ref_cnt++;
 
 		ctl->intf_ctx[SLAVE_CTX] = ctx;

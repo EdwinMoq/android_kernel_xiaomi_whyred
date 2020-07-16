@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Copyright (c) 2012-2014, 2018, The Linux Foundation. All rights reserved. */
+/* Copyright (c) 2012-2014, 2018, 2020, The Linux Foundation. All rights reserved. */
 
 #include <linux/bitops.h>
 #include <linux/delay.h>
@@ -331,9 +331,6 @@ static int mhl_tx_get_dt_data(struct device *dev,
 	return 0;
 error:
 	pr_err("%s: ret due to err\n", __func__);
-	for (i = 0; i < MHL_TX_MAX_GPIO; i++)
-		if (pdata->gpios[i])
-			devm_kfree(dev, pdata->gpios[i]);
 	return rc;
 } /* mhl_tx_get_dt_data */
 
@@ -1273,7 +1270,7 @@ int mhl_send_msc_command(struct mhl_tx_ctrl *mhl_ctrl,
 	if (!req)
 		return -EFAULT;
 
-	pr_debug("%s: command=0x%02x offset=0x%02x %02x %02x",
+	pr_debug("%s: command=0x%02x offset=0x%02x %02x %02x\n",
 		 __func__,
 		 req->command,
 		 req->offset,
@@ -1778,13 +1775,13 @@ static int mhl_i2c_probe(struct i2c_client *client,
 			rc = -ENOMEM;
 			goto failed_no_mem;
 		}
-
 		rc = mhl_tx_get_dt_data(&client->dev, pdata);
 		if (rc) {
 			pr_err("%s: FAILED: parsing device tree data; rc=%d\n",
 				__func__, rc);
 			goto failed_dt_data;
 		}
+
 		mhl_ctrl->i2c_handle = client;
 		mhl_ctrl->pdata = pdata;
 		i2c_set_clientdata(client, mhl_ctrl);
@@ -1929,18 +1926,8 @@ failed_probe_pwr:
 	power_supply_unregister(&mhl_ctrl->mhl_psy);
 failed_probe:
 	mhl_sii_config(mhl_ctrl, false);
-	/* do not deep-free */
-	if (mhl_info)
-		devm_kfree(&client->dev, mhl_info);
 failed_dt_data:
-	if (pdata)
-		devm_kfree(&client->dev, pdata);
 failed_no_mem:
-	if (mhl_ctrl)
-		devm_kfree(&client->dev, mhl_ctrl);
-	mhl_info = NULL;
-	pdata = NULL;
-	mhl_ctrl = NULL;
 	pr_err("%s: PROBE FAILED, rc=%d\n", __func__, rc);
 	return rc;
 }
@@ -1959,11 +1946,6 @@ static int mhl_i2c_remove(struct i2c_client *client)
 
 	destroy_workqueue(mhl_ctrl->mhl_workq);
 
-	if (mhl_ctrl->mhl_info)
-		devm_kfree(&client->dev, mhl_ctrl->mhl_info);
-	if (mhl_ctrl->pdata)
-		devm_kfree(&client->dev, mhl_ctrl->pdata);
-	devm_kfree(&client->dev, mhl_ctrl);
 	return 0;
 }
 
@@ -2066,7 +2048,6 @@ const struct of_device_id mhl_match_table[] = {
 static struct i2c_driver mhl_sii_i2c_driver = {
 	.driver = {
 		.name = MHL_DRIVER_NAME,
-		.owner = THIS_MODULE,
 		.of_match_table = mhl_match_table,
 #ifdef CONFIG_PM_SLEEP
 		.pm = &mhl_i2c_pm_ops,

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Copyright (c) 2016, 2018, The Linux Foundation. All rights reserved. */
+/* Copyright (c) 2016, 2018, 2020, The Linux Foundation. All rights reserved. */
 
 #include <linux/spinlock.h>
 #include <linux/ktime.h>
@@ -477,7 +477,7 @@ static ssize_t mdss_frc_log_read(struct file *file,
 	if (*ppos)
 		return 0; /* the end */
 
-	len = snprintf(buf, sizeof(buf), "%d\n", mdss_dbg_frc.log_enable);
+	len = scnprintf(buf, sizeof(buf), "%d\n", mdss_dbg_frc.log_enable);
 	if (len < 0 || len >= sizeof(buf))
 		return 0;
 

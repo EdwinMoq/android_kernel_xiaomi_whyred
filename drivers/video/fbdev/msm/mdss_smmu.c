@@ -107,7 +107,7 @@ static inline bool all_devices_probed(struct mdss_smmu_private *prv)
 	int p_cnt = 0;
 
 	if (!prv->pdev)
-		return 0;
+		return false;
 
 	for_each_child_of_node(prv->pdev, child) {
 		char name[MDSS_SMMU_COMPAT_STR_LEN] = {};
@@ -121,7 +121,7 @@ static inline bool all_devices_probed(struct mdss_smmu_private *prv)
 		p_cnt++;
 	}
 
-	return (d_cnt && (d_cnt == p_cnt) ? true : false);
+	return (d_cnt && (d_cnt == p_cnt));
 }
 
 static void mdss_iommu_notify_users(struct mdss_smmu_private *prv)

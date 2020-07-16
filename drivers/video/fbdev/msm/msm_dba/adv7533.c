@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Copyright (c) 2015-2018, The Linux Foundation. All rights reserved. */
+/* Copyright (c) 2015-2018, 2020, The Linux Foundation. All rights reserved. */
 
 #include <linux/types.h>
 #include <linux/kernel.h>
@@ -376,7 +376,7 @@ static int adv7533_write_array(struct adv7533 *pdata,
 			break;
 		}
 		if (ret != 0) {
-			pr_err("%s: adv7533 reg writes failed. ", __func__);
+			pr_err("%s: adv7533 reg writes failed.\n", __func__);
 			pr_err("Last write %02X to %02X\n",
 				cfg[i].val, cfg[i].reg);
 			goto w_regs_fail;
@@ -528,18 +528,11 @@ static void adv7533_parse_vreg_dt(struct device *dev,
 			mp->vreg_config[i].post_on_sleep);
 	}
 
-	devm_kfree(dev, val_array);
 	return;
 
 end:
-	if (mp->vreg_config) {
-		devm_kfree(dev, mp->vreg_config);
-		mp->vreg_config = NULL;
-	}
 	mp->num_vreg = 0;
 
-	if (val_array)
-		devm_kfree(dev, val_array);
 }
 
 static int adv7533_parse_dt(struct device *dev,
@@ -767,7 +760,7 @@ u32 adv7533_read_edid(struct adv7533 *pdata, u32 size, char *edid_buf)
 
 static int adv7533_cec_prepare_msg(struct adv7533 *pdata, u8 *msg, u32 size)
 {
-	int i, ret = -EINVAL;
+	int i;
 	int op_sz;
 
 	if (!pdata || !msg) {
@@ -798,12 +791,11 @@ static int adv7533_cec_prepare_msg(struct adv7533 *pdata, u8 *msg, u32 size)
 	adv7533_write(pdata, I2C_ADDR_CEC_DSI, 0x80, size);
 
 end:
-	return ret;
+	return -EINVAL;
 }
 
 static int adv7533_rd_cec_msg(struct adv7533 *pdata, u8 *cec_buf, int msg_num)
 {
-	int ret = -EINVAL;
 	u8 reg = 0;
 
 	if (!pdata || !cec_buf) {
@@ -825,7 +817,7 @@ static int adv7533_rd_cec_msg(struct adv7533 *pdata, u8 *cec_buf, int msg_num)
 
 	adv7533_read(pdata, I2C_ADDR_CEC_DSI, reg, cec_buf, CEC_MSG_SIZE);
 end:
-	return ret;
+	return -EINVAL;
 }
 
 static void adv7533_handle_hdcp_intr(struct adv7533 *pdata, u8 hdcp_status)
@@ -968,8 +960,6 @@ end:
 
 static int adv7533_edid_read_init(struct adv7533 *pdata)
 {
-	int ret = -EINVAL;
-
 	if (!pdata) {
 		pr_err("%s: invalid pdata\n", __func__);
 		goto end;
@@ -980,7 +970,7 @@ static int adv7533_edid_read_init(struct adv7533 *pdata)
 	adv7533_write(pdata, I2C_ADDR_MAIN, 0xC9, 0x13);
 
 end:
-	return ret;
+	return -EINVAL;
 }
 
 static void *adv7533_handle_hpd_intr(struct adv7533 *pdata)
@@ -1017,7 +1007,6 @@ end:
 
 static int adv7533_enable_interrupts(struct adv7533 *pdata, int interrupts)
 {
-	int ret = 0;
 	u8 reg_val, init_reg_val;
 
 	if (!pdata) {
@@ -1058,12 +1047,11 @@ static int adv7533_enable_interrupts(struct adv7533 *pdata, int interrupts)
 		adv7533_write(pdata, I2C_ADDR_MAIN, 0x95, reg_val);
 	}
 end:
-	return ret;
+	return 0;
 }
 
 static int adv7533_disable_interrupts(struct adv7533 *pdata, int interrupts)
 {
-	int ret = 0;
 	u8 reg_val, init_reg_val;
 
 	if (!pdata) {
@@ -1104,7 +1092,7 @@ static int adv7533_disable_interrupts(struct adv7533 *pdata, int interrupts)
 		adv7533_write(pdata, I2C_ADDR_MAIN, 0x95, reg_val);
 	}
 end:
-	return ret;
+	return 0;
 }
 
 static void adv7533_intr_work(struct work_struct *work)
@@ -1596,7 +1584,6 @@ static int adv7533_video_on(void *client, bool on,
 static int adv7533_hdcp_enable(void *client, bool hdcp_on,
 	bool enc_on, u32 flags)
 {
-	int ret = -EINVAL;
 	u8 reg_val;
 	struct adv7533 *pdata =
 		adv7533_get_platform_data(client);
@@ -1630,13 +1617,12 @@ static int adv7533_hdcp_enable(void *client, bool hdcp_on,
 		adv7533_disable_interrupts(pdata, CFG_HDCP_INTERRUPTS);
 
 	mutex_unlock(&pdata->ops_mutex);
-	return ret;
+	return -EINVAL;
 }
 
 static int adv7533_configure_audio(void *client,
 	struct msm_dba_audio_cfg *cfg, u32 flags)
 {
-	int ret = -EINVAL;
 	int sampling_rate = 0;
 	struct adv7533 *pdata =
 		adv7533_get_platform_data(client);
@@ -1747,7 +1733,7 @@ static int adv7533_configure_audio(void *client,
 	adv7533_write_array(pdata, reg_cfg, sizeof(reg_cfg));
 
 	mutex_unlock(&pdata->ops_mutex);
-	return ret;
+	return -EINVAL;
 }
 
 static int adv7533_hdmi_cec_write(void *client, u32 size,
@@ -1860,7 +1846,6 @@ static int adv7533_write_reg(struct msm_dba_device_info *dev,
 		u32 reg, u32 val)
 {
 	struct adv7533 *pdata;
-	int ret = -EINVAL;
 	u8 i2ca = 0;
 
 	if (!dev)
@@ -1874,13 +1859,12 @@ static int adv7533_write_reg(struct msm_dba_device_info *dev,
 
 	adv7533_write(pdata, i2ca, (u8)(reg & 0xFF), (u8)(val & 0xFF));
 end:
-	return ret;
+	return -EINVAL;
 }
 
 static int adv7533_read_reg(struct msm_dba_device_info *dev,
 		u32 reg, u32 *val)
 {
-	int ret = 0;
 	u8 byte_val = 0;
 	u8 i2ca = 0;
 	struct adv7533 *pdata;
@@ -1899,7 +1883,7 @@ static int adv7533_read_reg(struct msm_dba_device_info *dev,
 	*val = (u32)byte_val;
 
 end:
-	return ret;
+	return 0;
 }
 
 static int adv7533_register_dba(struct adv7533 *pdata)
@@ -1970,7 +1954,6 @@ static int adv7533_probe(struct i2c_client *client,
 		pr_err("%s: Failed to parse DT\n", __func__);
 		goto err_dt_parse;
 	}
-
 	pdata->i2c_client = client;
 
 	ret = adv7533_config_vreg(pdata, 1);
@@ -2069,7 +2052,6 @@ err_i2c_prog:
 	adv7533_enable_vreg(pdata, 0);
 	adv7533_config_vreg(pdata, 0);
 err_dt_parse:
-	devm_kfree(&client->dev, pdata);
 	return ret;
 }
 
@@ -2099,8 +2081,6 @@ static int adv7533_remove(struct i2c_client *client)
 
 	mutex_destroy(&pdata->ops_mutex);
 
-	devm_kfree(&client->dev, pdata);
-
 end:
 	return ret;
 }
@@ -2108,7 +2088,6 @@ end:
 static struct i2c_driver adv7533_driver = {
 	.driver = {
 		.name = "adv7533",
-		.owner = THIS_MODULE,
 	},
 	.probe = adv7533_probe,
 	.remove = adv7533_remove,

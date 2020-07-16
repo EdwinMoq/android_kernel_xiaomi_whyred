@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-only
 ccflags-y += -I$(src)
 
 obj-$(CONFIG_FB_MSM_MDSS_MHL3) += mhl3/
@@ -11,7 +12,6 @@ mdss-mdp-objs += mdss_mdp_pp.o mdss_mdp_pp_debug.o mdss_mdp_pp_cache_config.o md
 mdss-mdp-objs += mdss_mdp_intf_video.o
 mdss-mdp-objs += mdss_mdp_intf_cmd.o
 mdss-mdp-objs += mdss_mdp_intf_writeback.o
-mdss-mdp-objs += mdss_rotator.o
 mdss-mdp-objs += mdss_mdp_overlay.o
 mdss-mdp-objs += mdss_mdp_layer.o
 mdss-mdp-objs += mdss_mdp_splash_logo.o
@@ -49,8 +49,6 @@ obj-$(CONFIG_FB_MSM_MDSS) += mdss_hdmi_util.o
 obj-$(CONFIG_FB_MSM_MDSS) += mdss_hdmi_edid.o
 obj-$(CONFIG_FB_MSM_MDSS) += mdss_cec_core.o
 obj-$(CONFIG_FB_MSM_MDSS) += mdss_dba_utils.o
-obj-$(CONFIG_FB_MSM_MDSS_EDP_PANEL) += mdss_edp.o
-obj-$(CONFIG_FB_MSM_MDSS_EDP_PANEL) += mdss_edp_aux.o
 
 obj-$(CONFIG_FB_MSM_MDSS_HDMI_PANEL) += mdss_hdmi_tx.o
 obj-$(CONFIG_FB_MSM_MDSS_HDMI_PANEL) += mdss_hdmi_panel.o
@@ -67,17 +65,7 @@ obj-$(CONFIG_FB_MSM_MDSS_DP_PANEL) += mdss_dp.o mdss_dp_util.o
 obj-$(CONFIG_FB_MSM_MDSS_DP_PANEL) += mdss_dp_aux.o
 obj-$(CONFIG_FB_MSM_MDSS_DP_PANEL) += mdss_dp_hdcp2p2.o
 
-obj-$(CONFIG_FB_MSM_MDSS_SPI_PANEL) += mdss_spi_display.o
-obj-$(CONFIG_FB_MSM_MDSS_SPI_PANEL) += mdss_spi_client.o
-obj-$(CONFIG_FB_MSM_MDSS_SPI_PANEL) += mdss_spi_panel.o
-
-obj-$(CONFIG_FB_MSM_MDSS_RGB_PANEL) += mdss_rgb.o mdss_rgb_panel.o
-
 obj-$(CONFIG_FB_MSM_MDSS_WRITEBACK) += mdss_wb.o
-
-mdss-qpic-objs := mdss_qpic.o mdss_fb.o mdss_qpic_panel.o mdss_sync.o
-obj-$(CONFIG_FB_MSM_QPIC) += mdss-qpic.o
-obj-$(CONFIG_FB_MSM_QPIC_ILI_QVGA_PANEL) += qpic_panel_ili_qvga.o
 
 obj-$(CONFIG_FB_MSM_MDSS) += mdss_fb.o mdss_util.o
 obj-$(CONFIG_COMPAT) += mdss_compat_utils.o

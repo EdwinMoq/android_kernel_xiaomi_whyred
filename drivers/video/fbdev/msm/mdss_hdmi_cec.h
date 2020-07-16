@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
-/* Copyright (c) 2010-2013, 2015-2016, 2018, The Linux Foundation. All rights reserved. */
+/* Copyright (c) 2010-2013, 2015-2016, 2018, 2020, The Linux Foundation. All rights reserved. */
 
 #ifndef __MDSS_HDMI_CEC_H__
 #define __MDSS_HDMI_CEC_H__

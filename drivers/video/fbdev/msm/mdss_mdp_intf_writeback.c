@@ -672,7 +672,7 @@ static int mdss_mdp_writeback_prepare_rot(struct mdss_mdp_ctl *ctl, void *arg)
 	perf = entry->perf;
 	mdata = ctl->mdata;
 	if (!mdata) {
-		pr_err("no mdata attached to ctl=%d", ctl->num);
+		pr_err("no mdata attached to ctl=%d\n", ctl->num);
 		return -ENODEV;
 	}
 	pr_debug("rot setup wb_num=%d\n", ctx->wb_num);
@@ -898,7 +898,7 @@ static bool mdss_mdp_traffic_shaper_helper(struct mdss_mdp_ctl *ctl,
 static void mdss_mdp_traffic_shaper(struct mdss_mdp_ctl *ctl,
 		struct mdss_mdp_writeback_ctx *ctx, bool enable)
 {
-	bool traffic_shaper_enabled = 0;
+	bool traffic_shaper_enabled = false;
 
 	if (mdss_mdp_ctl_is_power_on(ctl)) {
 		traffic_shaper_enabled = mdss_mdp_traffic_shaper_helper

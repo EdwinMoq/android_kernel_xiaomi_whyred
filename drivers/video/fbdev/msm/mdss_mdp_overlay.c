@@ -274,7 +274,7 @@ int mdss_mdp_overlay_req_check(struct msm_fb_data_type *mfd,
 	}
 
 	if (req->dst_rect.w < min_dst_size || req->dst_rect.h < min_dst_size) {
-		pr_err("invalid destination resolution (%dx%d)",
+		pr_err("invalid destination resolution (%dx%d)\n",
 		       req->dst_rect.w, req->dst_rect.h);
 		return -EOVERFLOW;
 	}
@@ -962,7 +962,7 @@ int mdss_mdp_overlay_pipe_setup(struct msm_fb_data_type *mfd,
 		} else if ((mixer_mux == MDSS_MDP_MIXER_MUX_LEFT) &&
 		    ((req->dst_rect.x + req->dst_rect.w) > mixer->width)) {
 			if (req->dst_rect.x >= mixer->width) {
-				pr_err("%pS: err dst_x can't lie in right half",
+				pr_err("%pS:er dst_x can't lie in right half\n",
 					__builtin_return_address(0));
 				pr_err(" flags:0x%x dst x:%d w:%d lm_w:%d\n",
 					req->flags, req->dst_rect.x,
@@ -1629,7 +1629,7 @@ static int __overlay_queue_pipes(struct msm_fb_data_type *mfd)
 			if (ctl->mdata->mixer_switched) {
 				ret = mdss_mdp_overlay_pipe_setup(mfd,
 					&pipe->req_data, &pipe, NULL, false);
-				pr_debug("resetting DMA pipe for ctl=%d",
+				pr_debug("resetting DMA pipe for ctl=%d\n",
 					 ctl->num);
 			}
 			if (ret) {
@@ -1767,7 +1767,6 @@ static void __overlay_kickoff_requeue(struct msm_fb_data_type *mfd)
 static int mdss_mdp_commit_cb(enum mdp_commit_stage_type commit_stage,
 	void *data)
 {
-	int ret = 0;
 	struct msm_fb_data_type *mfd = (struct msm_fb_data_type *)data;
 	struct mdss_overlay_private *mdp5_data = mfd_to_mdp5_data(mfd);
 	struct mdss_mdp_ctl *ctl;
@@ -1783,11 +1782,11 @@ static int mdss_mdp_commit_cb(enum mdp_commit_stage_type commit_stage,
 		mutex_lock(&mdp5_data->ov_lock);
 		break;
 	default:
-		pr_err("Invalid commit stage %x", commit_stage);
+		pr_err("Invalid commit stage %x\n", commit_stage);
 		break;
 	}
 
-	return ret;
+	return 0;
 }
 
 /**
@@ -2136,7 +2135,7 @@ static int __adjust_pipe_rect(struct mdss_mdp_pipe *pipe,
 
 end:
 	if (ret) {
-		pr_err("pipe:%d dst:{%d,%d,%d,%d} - not cropped for any PU ROI",
+		pr_err("pipe:%d dst:{%d,%d,%d,%d} - not cropped for any PU ROI\n",
 			pipe->num, pipe->dst.x, pipe->dst.y,
 			pipe->dst.w, pipe->dst.h);
 		pr_err("ROI0:{%d,%d,%d,%d} ROI1:{%d,%d,%d,%d}\n",
@@ -2439,7 +2438,7 @@ static int __overlay_secure_ctrl(struct msm_fb_data_type *mfd)
 			ret = mdss_mdp_secure_session_ctrl(1,
 					MDP_SECURE_DISPLAY_OVERLAY_SESSION);
 			if (ret) {
-				pr_err("secure display enable fail:%d", ret);
+				pr_err("secure display enable fail:%d\n", ret);
 				return ret;
 			}
 		}
@@ -2793,7 +2792,7 @@ static int __mdss_mdp_overlay_release_all(struct msm_fb_data_type *mfd,
 	mutex_lock(&mdp5_data->ov_lock);
 	mutex_lock(&mdp5_data->list_lock);
 	if (!mfd->ref_cnt && !list_empty(&mdp5_data->pipes_cleanup)) {
-		pr_debug("fb%d:: free pipes present in cleanup list",
+		pr_debug("fb%d:: free pipes present in cleanup list\n",
 			mfd->index);
 		cnt++;
 	}
@@ -3344,7 +3343,7 @@ static ssize_t dynamic_fps_show(struct device *dev,
 	}
 
 	mutex_lock(&mdp5_data->dfps_lock);
-	ret = snprintf(buf, PAGE_SIZE, "%d\n",
+	ret = scnprintf(buf, PAGE_SIZE, "%d\n",
 		       pdata->panel_info.mipi.frame_rate);
 	pr_debug("%s: '%d'\n", __func__,
 		pdata->panel_info.mipi.frame_rate);
@@ -3887,7 +3886,7 @@ static ssize_t msm_disable_panel_show(struct device *dev,
 
 	pdata = dev_get_platdata(&mfd->pdev->dev);
 
-	ret = snprintf(buf, PAGE_SIZE, "%d\n",
+	ret = scnprintf(buf, PAGE_SIZE, "%d\n",
 		pdata->panel_disable_mode);
 
 	return ret;
@@ -3992,7 +3991,7 @@ static ssize_t msm_cmd_autorefresh_en_show(struct device *dev,
 		pr_err("Panel doesn't support autorefresh\n");
 		ret = -EINVAL;
 	} else {
-		ret = snprintf(buf, PAGE_SIZE, "%d\n",
+		ret = scnprintf(buf, PAGE_SIZE, "%d\n",
 			mdss_mdp_ctl_cmd_get_autorefresh(ctl));
 	}
 	return ret;
@@ -4754,7 +4753,6 @@ static int mdss_mdp_hw_cursor_update(struct msm_fb_data_type *mfd,
 static int mdss_bl_scale_config(struct msm_fb_data_type *mfd,
 						struct mdp_bl_scale_data *data)
 {
-	int ret = 0;
 	int curr_bl;
 
 	mutex_lock(&mfd->bl_lock);
@@ -4767,7 +4765,7 @@ static int mdss_bl_scale_config(struct msm_fb_data_type *mfd,
 		mdss_fb_set_backlight(mfd, curr_bl);
 
 	mutex_unlock(&mfd->bl_lock);
-	return ret;
+	return 0;
 }
 
 static int mdss_mdp_pp_ioctl(struct msm_fb_data_type *mfd,
@@ -6265,7 +6263,7 @@ static int __vsync_retire_setup(struct msm_fb_data_type *mfd)
 	snprintf(name, sizeof(name), "mdss_fb%d_retire", mfd->index);
 	mfd->mdp_sync_pt_data.timeline_retire = mdss_create_timeline(name);
 	if (mfd->mdp_sync_pt_data.timeline_retire == NULL) {
-		pr_err("cannot vsync create time line");
+		pr_err("cannot vsync create time line\n");
 		return -ENOMEM;
 	}
 
@@ -6640,7 +6638,6 @@ init_fail:
 
 static int mdss_mdp_overlay_fb_parse_dt(struct msm_fb_data_type *mfd)
 {
-	int rc = 0;
 	struct platform_device *pdev = mfd->pdev;
 	struct mdss_overlay_private *mdp5_mdata = mfd_to_mdp5_data(mfd);
 
@@ -6651,7 +6648,7 @@ static int mdss_mdp_overlay_fb_parse_dt(struct msm_fb_data_type *mfd)
 			pdev->name);
 	}
 
-	return rc;
+	return 0;
 }
 
 static int mdss_mdp_scaler_lut_init(struct mdss_data_type *mdata,
@@ -6677,8 +6674,7 @@ static int mdss_mdp_scaler_lut_init(struct mdss_data_type *mdata,
 	}
 
 	if (!qseed3_lut_tbl->dir_lut) {
-		qseed3_lut_tbl->dir_lut = devm_kzalloc(&mdata->pdev->dev,
-				lut_tbl->dir_lut_size,
+		qseed3_lut_tbl->dir_lut = kzalloc(lut_tbl->dir_lut_size,
 				GFP_KERNEL);
 		if (!qseed3_lut_tbl->dir_lut) {
 			ret = -ENOMEM;
@@ -6687,8 +6683,7 @@ static int mdss_mdp_scaler_lut_init(struct mdss_data_type *mdata,
 	}
 
 	if (!qseed3_lut_tbl->cir_lut) {
-		qseed3_lut_tbl->cir_lut = devm_kzalloc(&mdata->pdev->dev,
-				lut_tbl->cir_lut_size,
+		qseed3_lut_tbl->cir_lut = kzalloc(lut_tbl->cir_lut_size,
 				GFP_KERNEL);
 		if (!qseed3_lut_tbl->cir_lut) {
 			ret = -ENOMEM;
@@ -6697,8 +6692,7 @@ static int mdss_mdp_scaler_lut_init(struct mdss_data_type *mdata,
 	}
 
 	if (!qseed3_lut_tbl->sep_lut) {
-		qseed3_lut_tbl->sep_lut = devm_kzalloc(&mdata->pdev->dev,
-				lut_tbl->sep_lut_size,
+		qseed3_lut_tbl->sep_lut = kzalloc(lut_tbl->sep_lut_size,
 				GFP_KERNEL);
 		if (!qseed3_lut_tbl->sep_lut) {
 			ret = -ENOMEM;
@@ -6736,11 +6730,11 @@ static int mdss_mdp_scaler_lut_init(struct mdss_data_type *mdata,
 	return ret;
 
 fail_free_sep_lut:
-	devm_kfree(&mdata->pdev->dev, qseed3_lut_tbl->sep_lut);
+	kfree(qseed3_lut_tbl->sep_lut);
 fail_free_cir_lut:
-	devm_kfree(&mdata->pdev->dev, qseed3_lut_tbl->cir_lut);
+	kfree(qseed3_lut_tbl->cir_lut);
 fail_free_dir_lut:
-	devm_kfree(&mdata->pdev->dev, qseed3_lut_tbl->dir_lut);
+	kfree(qseed3_lut_tbl->dir_lut);
 err:
 	qseed3_lut_tbl->dir_lut = NULL;
 	qseed3_lut_tbl->cir_lut = NULL;

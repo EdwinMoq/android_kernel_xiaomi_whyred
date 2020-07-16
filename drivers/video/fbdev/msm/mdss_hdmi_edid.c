@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Copyright (c) 2010-2018, The Linux Foundation. All rights reserved. */
+/* Copyright (c) 2010-2018, 2020, The Linux Foundation. All rights reserved. */
 
 #include <linux/io.h>
 #include <linux/types.h>
@@ -2627,7 +2627,7 @@ bool hdmi_edid_get_sink_scrambler_support(void *input)
 
 	if (!edid_ctrl) {
 		DEV_ERR("%s: invalid edid ctrl data\n", __func__);
-		return 0;
+		return false;
 	}
 
 	if (edid_ctrl->edid_override &&

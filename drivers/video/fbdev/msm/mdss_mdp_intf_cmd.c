@@ -1081,7 +1081,7 @@ static bool mdss_mdp_cmd_is_autorefresh_enabled(struct mdss_mdp_ctl *mctl)
 
 	/* check the ctl to make sure the lock was initialized */
 	if (!ctx || !ctx->ctl)
-		return 0;
+		return false;
 
 	mutex_lock(&ctx->autorefresh_lock);
 	if (ctx->autorefresh_state == MDP_AUTOREFRESH_ON)
@@ -2012,7 +2012,6 @@ int mdss_mdp_cmd_reconfigure_splash_done(struct mdss_mdp_ctl *ctl,
 	struct mdss_mdp_ctl *sctl = NULL;
 	struct mdss_mdp_cmd_ctx *sctx = NULL;
 	struct dsi_panel_clk_ctrl clk_ctrl;
-	int ret = 0;
 
 	/* Get both controllers in the correct order for dual displays */
 	mdss_mdp_get_split_display_ctls(&ctl, &sctl);
@@ -2048,7 +2047,7 @@ int mdss_mdp_cmd_reconfigure_splash_done(struct mdss_mdp_ctl *ctl,
 	else if (pdata->next && is_pingpong_split(ctl->mfd))
 		pdata->next->panel_info.cont_splash_enabled = 0;
 
-	return ret;
+	return 0;
 }
 
 static int __mdss_mdp_wait4pingpong(struct mdss_mdp_cmd_ctx *ctx)
@@ -3758,7 +3757,7 @@ static int mdss_mdp_cmd_intfs_setup(struct mdss_mdp_ctl *ctl,
 
 		ret = mdss_mdp_cmd_ctx_setup(ctl, ctx, session, session, true);
 		if (ret) {
-			pr_err("mdss_mdp_cmd_ctx_setup failed for slave ping pong block");
+			pr_err("mdss_mdp_cmd_ctx_setup failed for slave ping pong block\n");
 			ctx->ref_cnt--;
 			return -EPERM;
 		}

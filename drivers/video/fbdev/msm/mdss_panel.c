@@ -126,17 +126,17 @@ static ssize_t panel_debugfs_array_read(struct file *file, char __user *buf,
 		if (data->size == sizeof(u8)) {
 			u8 *array = (u8 *)data->array;
 
-			bufp += snprintf(bufp, buf_size-(bufp-buffer),
+			bufp += scnprintf(bufp, buf_size-(bufp-buffer),
 						"0x%02x%c", array[i], term);
 		} else if (data->size == sizeof(u16)) {
 			u16 *array = (u16 *)data->array;
 
-			bufp += snprintf(bufp, buf_size-(bufp-buffer),
+			bufp += scnprintf(bufp, buf_size-(bufp-buffer),
 						"0x%02x%c", array[i], term);
 		} else {
 			u32 *array = (u32 *)data->array;
 
-			bufp += snprintf(bufp, buf_size-(bufp-buffer),
+			bufp += scnprintf(bufp, buf_size-(bufp-buffer),
 						"0x%02x%c", array[i], term);
 		}
 		i++;

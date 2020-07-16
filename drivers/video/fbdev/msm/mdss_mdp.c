@@ -1,17 +1,10 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * MDSS MDP Interface (used by framebuffer core)
  *
  * Copyright (c) 2007-2018, 2020, The Linux Foundation. All rights reserved.
  * Copyright (C) 2007 Google Incorporated
  *
- * This software is licensed under the terms of the GNU General Public
- * License version 2, as published by the Free Software Foundation, and
- * may be copied, distributed, and modified under those terms.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
  */
 
 #define pr_fmt(fmt)	"%s: " fmt, __func__
@@ -2873,7 +2866,7 @@ static ssize_t bw_mode_bitmap_show(struct device *dev,
 		pipe_bw_settings++;
 	}
 
-	return cnt;
+	return 0;
 }
 
 static ssize_t bw_mode_bitmap_store(struct device *dev,
@@ -3604,8 +3597,6 @@ static int mdss_mdp_parse_dt_pipe_helper(struct platform_device *pdev,
 
 	return cnt;
 parse_fail:
-	devm_kfree(&pdev->dev, pipe_list);
-
 	return rc;
 }
 
@@ -3640,7 +3631,7 @@ static int mdss_mdp_parse_dt_pipe(struct platform_device *pdev)
 		nfids  += mdss_mdp_parse_dt_prop_len(pdev,
 				"qcom,mdss-pipe-dma-fetch-id");
 		if (npipes != nfids) {
-			pr_err("device tree err: unequal number of pipes and smp ids");
+			pr_err("device tree err: unequal number of pipes and smp ids\n");
 			return -EINVAL;
 		}
 	}
@@ -4936,7 +4927,7 @@ bool force_on_xin_clk(u32 bit_off, u32 clk_ctl_reg_off, bool enable)
 
 	clk_forced_on = !(force_on_mask & val);
 
-	if (true == enable)
+	if (enable)
 		val |= force_on_mask;
 	else
 		val &= ~force_on_mask;

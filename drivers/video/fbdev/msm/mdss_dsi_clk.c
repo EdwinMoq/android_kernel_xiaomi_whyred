@@ -125,7 +125,6 @@ error:
 
 static int dsi_core_clk_stop(struct dsi_core_clks *c_clks)
 {
-	int rc = 0;
 	struct mdss_dsi_clk_mngr *mngr;
 
 	mngr = container_of(c_clks, struct mdss_dsi_clk_mngr, core_clks);
@@ -140,7 +139,7 @@ static int dsi_core_clk_stop(struct dsi_core_clks *c_clks)
 	clk_disable_unprepare(c_clks->clks.mdp_core_clk);
 
 	pr_debug("%s: CORE CLOCK IS OFF\n", mngr->name);
-	return rc;
+	return 0;
 }
 
 static int dsi_link_clk_set_rate(struct dsi_link_clks *l_clks)
@@ -245,15 +244,13 @@ esc_clk_err:
 
 static int dsi_link_clk_unprepare(struct dsi_link_clks *l_clks)
 {
-	int rc = 0;
-
 	if (l_clks->clks.byte_intf_clk)
 		clk_unprepare(l_clks->clks.byte_intf_clk);
 	clk_unprepare(l_clks->clks.pixel_clk);
 	clk_unprepare(l_clks->clks.byte_clk);
 	clk_unprepare(l_clks->clks.esc_clk);
 
-	return rc;
+	return 0;
 }
 
 static int dsi_link_clk_enable(struct dsi_link_clks *l_clks)
@@ -301,15 +298,13 @@ esc_clk_err:
 
 static int dsi_link_clk_disable(struct dsi_link_clks *l_clks)
 {
-	int rc = 0;
-
 	if (l_clks->clks.byte_intf_clk)
 		clk_disable(l_clks->clks.byte_intf_clk);
 	clk_disable(l_clks->clks.esc_clk);
 	clk_disable(l_clks->clks.pixel_clk);
 	clk_disable(l_clks->clks.byte_clk);
 
-	return rc;
+	return 0;
 }
 
 
@@ -348,7 +343,6 @@ error:
 
 static int dsi_link_clk_stop(struct dsi_link_clks *l_clks)
 {
-	int rc = 0;
 	struct mdss_dsi_clk_mngr *mngr;
 
 	mngr = container_of(l_clks, struct mdss_dsi_clk_mngr, link_clks);
@@ -358,7 +352,7 @@ static int dsi_link_clk_stop(struct dsi_link_clks *l_clks)
 	(void)dsi_link_clk_unprepare(l_clks);
 	pr_debug("%s: LINK CLOCK IS OFF\n", mngr->name);
 
-	return rc;
+	return 0;
 }
 
 static int dsi_update_clk_state(struct dsi_core_clks *c_clks, u32 c_state,
@@ -860,7 +854,7 @@ int mdss_dsi_clk_req_state(void *client, enum mdss_dsi_clk_type clk,
 					changed = true;
 					c->core_clk_state = MDSS_DSI_CLK_OFF;
 				} else {
-					pr_warn("Core refcount is zero for %s",
+					pr_warn("Core refcount is zero for %s\n",
 						c->name);
 				}
 			} else {
@@ -879,7 +873,7 @@ int mdss_dsi_clk_req_state(void *client, enum mdss_dsi_clk_type clk,
 					changed = true;
 					c->link_clk_state = MDSS_DSI_CLK_OFF;
 				} else {
-					pr_warn("Link refcount is zero for %s",
+					pr_warn("Link refcount is zero for %s\n",
 						c->name);
 				}
 			} else {
@@ -914,7 +908,8 @@ int mdss_dsi_clk_set_link_rate(void *client, enum mdss_dsi_link_clk_type clk,
 	struct mdss_dsi_clk_mngr *mngr;
 
 	if (!client || (clk > MDSS_DSI_LINK_CLK_MAX)) {
-		pr_err("Invalid params, client = %pK, clk = 0x%x", client, clk);
+		pr_err("Invalid params, client = %pK, clk = 0x%x\n",
+					 client, clk);
 		return -EINVAL;
 	}
 

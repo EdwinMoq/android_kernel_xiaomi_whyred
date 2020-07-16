@@ -855,7 +855,7 @@ static int __layer_param_check(struct msm_fb_data_type *mfd,
 
 	if (layer->dst_rect.w < min_dst_size ||
 		layer->dst_rect.h < min_dst_size) {
-		pr_err("invalid destination resolution (%dx%d)",
+		pr_err("invalid destination resolution (%dx%d)\n",
 		       layer->dst_rect.w, layer->dst_rect.h);
 		return -EINVAL;
 	}
@@ -1305,7 +1305,8 @@ static int __configure_pipe_params(struct msm_fb_data_type *mfd,
 
 	if (pipe->dst.x >= left_lm_w)
 		pipe->overfetch_disable |= OVERFETCH_DISABLE_RIGHT;
-		pr_debug("overfetch flags=%x\n", pipe->overfetch_disable);
+			pr_debug("overfetch flags=%x\n",
+				pipe->overfetch_disable);
 	} else {
 		pipe->overfetch_disable = 0;
 	}
@@ -1466,7 +1467,7 @@ static int __handle_buffer_fences(struct msm_fb_data_type *mfd,
 	}
 
 	i = mdss_fb_wait_for_fence(sync_pt_data);
-	if (i > 0)
+	if (i)
 		pr_warn("%s: waited on %d active fences\n",
 			sync_pt_data->fence_name, i);
 
@@ -2767,7 +2768,7 @@ int __is_cwb_requested(uint32_t commit_flags)
 
 	req = commit_flags & MDP_COMMIT_CWB_EN;
 	if (req && !test_bit(MDSS_CAPS_CWB_SUPPORTED, mdata->mdss_caps_map)) {
-		pr_err("CWB not supported");
+		pr_err("CWB not supported\n");
 		return -ENODEV;
 	}
 	return req;
@@ -2905,7 +2906,7 @@ int mdss_mdp_layer_pre_commit(struct msm_fb_data_type *mfd,
 
 	ret = __handle_buffer_fences(mfd, commit, layer_list);
 	if (ret) {
-		pr_err("failed to handle fences for fb: %d", mfd->index);
+		pr_err("failed to handle fences for fb: %d\n", mfd->index);
 		goto map_err;
 	}
 map_err:

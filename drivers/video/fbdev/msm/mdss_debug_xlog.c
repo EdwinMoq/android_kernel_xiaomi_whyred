@@ -211,7 +211,7 @@ static ssize_t mdss_xlog_dump_entry(char *xlog_buf, ssize_t xlog_buf_size)
 	prev_log = &mdss_dbg_xlog.logs[(mdss_dbg_xlog.first - 1) %
 		MDSS_XLOG_ENTRY];
 
-	off = snprintf((xlog_buf + off), (xlog_buf_size - off), "%s:%-4d",
+	off = scnprintf((xlog_buf + off), (xlog_buf_size - off), "%s:%-4d",
 		log->name, log->line);
 
 	if (off < MDSS_XLOG_BUF_ALIGN) {
@@ -219,15 +219,15 @@ static ssize_t mdss_xlog_dump_entry(char *xlog_buf, ssize_t xlog_buf_size)
 		off = MDSS_XLOG_BUF_ALIGN;
 	}
 
-	off += snprintf((xlog_buf + off), (xlog_buf_size - off),
+	off += scnprintf((xlog_buf + off), (xlog_buf_size - off),
 		"=>[%-8d:%-11llu:%9llu][%-4d]:", mdss_dbg_xlog.first,
 		log->time, (log->time - prev_log->time), log->pid);
 
 	for (i = 0; i < log->data_cnt; i++)
-		off += snprintf((xlog_buf + off), (xlog_buf_size - off),
+		off += scnprintf((xlog_buf + off), (xlog_buf_size - off),
 			"%x ", log->data[i]);
 
-	off += snprintf((xlog_buf + off), (xlog_buf_size - off), "\n");
+	off += scnprintf((xlog_buf + off), (xlog_buf_size - off), "\n");
 
 	spin_unlock_irqrestore(&xlock, flags);
 
@@ -240,7 +240,7 @@ static void mdss_xlog_dump_all(void)
 
 	while (__mdss_xlog_dump_calc_range()) {
 		mdss_xlog_dump_entry(xlog_buf, MDSS_XLOG_BUF_MAX);
-		pr_info("%s", xlog_buf);
+		pr_info("%s\n", xlog_buf);
 	}
 }
 
@@ -543,7 +543,7 @@ static void mdss_dump_reg_by_ranges(struct mdss_debug_base *dbg,
 		}
 	} else {
 		/* If there is no list to dump ranges, dump all registers */
-		pr_info("Ranges not found, will dump full registers");
+		pr_info("Ranges not found, will dump full registers\n");
 		pr_info("base:0x%pK len:%zu\n", dbg->base, dbg->max_offset);
 		addr = dbg->base;
 		len = dbg->max_offset;

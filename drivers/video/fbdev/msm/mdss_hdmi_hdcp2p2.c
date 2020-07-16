@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Copyright (c) 2015-2018, The Linux Foundation. All rights reserved. */
+/* Copyright (c) 2015-2018, 2020, The Linux Foundation. All rights reserved. */
 
 #define pr_fmt(fmt)	"%s: " fmt, __func__
 
@@ -297,7 +297,6 @@ static int hdmi_hdcp2p2_authenticate(void *input)
 	struct hdcp_transport_wakeup_data cdata = {
 			HDCP_TRANSPORT_CMD_AUTHENTICATE};
 	u32 regval;
-	int rc = 0;
 
 	/* Enable authentication success interrupt */
 	regval = DSS_REG_R(ctrl->init_data.core_io, HDMI_HDCP_INT_CTRL2);
@@ -321,7 +320,7 @@ static int hdmi_hdcp2p2_authenticate(void *input)
 		hdmi_hdcp2p2_wakeup(&cdata);
 	}
 
-	return rc;
+	return 0;
 }
 
 static int hdmi_hdcp2p2_reauthenticate(void *input)
@@ -351,7 +350,7 @@ static ssize_t tethered_show(struct device *dev,
 	}
 
 	mutex_lock(&ctrl->mutex);
-	ret = snprintf(buf, PAGE_SIZE, "%d\n", ctrl->tethered);
+	ret = scnprintf(buf, PAGE_SIZE, "%d\n", ctrl->tethered);
 	mutex_unlock(&ctrl->mutex);
 
 	return ret;
@@ -569,7 +568,7 @@ static int hdmi_hdcp2p2_read_version(struct hdmi_hdcp2p2_ctrl *ctrl,
 
 	rc = hdmi_ddc_read(ctrl->init_data.ddc_ctrl);
 	if (rc) {
-		pr_err("Cannot read HDCP2Version register");
+		pr_err("Cannot read HDCP2Version register\n");
 		return rc;
 	}
 
@@ -644,14 +643,13 @@ static void hdmi_hdcp2p2_send_msg(struct hdmi_hdcp2p2_ctrl *ctrl)
 		goto exit;
 	}
 
-	msg = kzalloc(msglen, GFP_KERNEL);
+	msg = kmemdup(ctrl->buf, msglen, GFP_KERNEL);
 	if (!msg) {
 		mutex_unlock(&ctrl->msg_lock);
 		rc = -ENOMEM;
 		goto exit;
 	}
 
-	memcpy(msg, ctrl->buf, msglen);
 	mutex_unlock(&ctrl->msg_lock);
 
 	/* Forward the message to the sink */
@@ -663,9 +661,8 @@ static void hdmi_hdcp2p2_send_msg(struct hdmi_hdcp2p2_ctrl *ctrl)
 		cdata.cmd = HDCP_2X_CMD_MSG_SEND_SUCCESS;
 		cdata.timeout = ctrl->timeout_left;
 	}
-exit:
 	kfree(msg);
-
+exit:
 	hdmi_hdcp2p2_wakeup_lib(ctrl, &cdata);
 }
 

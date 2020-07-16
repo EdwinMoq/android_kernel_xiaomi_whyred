@@ -2062,11 +2062,11 @@ void mdss_mdp_dump(struct mdss_data_type *mdata)
 			char c = s.buf[i + DUMP_CHUNK];
 
 			s.buf[i + DUMP_CHUNK] = 0;
-			pr_info("%s", s.buf + i);
+			pr_info("%s\n", s.buf + i);
 			s.buf[i + DUMP_CHUNK] = c;
 		} else {
 			s.buf[s.count] = 0;
-			pr_info("%s", s.buf + i);
+			pr_info("%s\n", s.buf + i);
 		}
 	}
 

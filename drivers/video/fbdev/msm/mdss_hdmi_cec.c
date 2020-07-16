@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Copyright (c) 2010-2018, The Linux Foundation. All rights reserved. */
+/* Copyright (c) 2010-2018, 2020, The Linux Foundation. All rights reserved. */
 
 #include <linux/io.h>
 #include <linux/list.h>
@@ -324,7 +324,7 @@ bool hdmi_cec_is_wakeup_en(void *input)
 
 	if (!cec_ctrl) {
 		DEV_WARN("%s: HDMI CEC HW module not initialized.\n", __func__);
-		return 0;
+		return false;
 	}
 
 	return cec_ctrl->cec_wakeup_en;

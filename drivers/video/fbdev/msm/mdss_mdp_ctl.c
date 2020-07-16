@@ -549,7 +549,7 @@ static void mdss_mdp_get_bw_vote_mode(void *data,
 		break;
 	default:
 		break;
-	};
+	}
 
 	pr_debug("mode=0x%lx\n", *(perf->bw_vote_mode));
 
@@ -1553,7 +1553,7 @@ static bool mdss_mdp_video_mode_intf_connected(struct mdss_mdp_ctl *ctl)
 	struct mdss_data_type *mdata;
 
 	if (!ctl || !ctl->mdata)
-		return 0;
+		return false;
 
 	mdata = ctl->mdata;
 	for (i = 0; i < mdata->nctl; i++) {
@@ -2408,7 +2408,7 @@ static void mdss_mdp_ctl_perf_update(struct mdss_mdp_ctl *ctl,
 		if ((params_changed && (new->mdp_clk_rate > old->mdp_clk_rate))
 			 || (!params_changed &&
 			 (new->mdp_clk_rate < old->mdp_clk_rate) &&
-			(false == is_traffic_shaper_enabled(mdata)))) {
+			(!is_traffic_shaper_enabled(mdata)))) {
 			old->mdp_clk_rate = new->mdp_clk_rate;
 			update_clk = 1;
 		}
@@ -3688,7 +3688,7 @@ int mdss_mdp_ctl_setup(struct mdss_mdp_ctl *ctl)
 	u32 width, height;
 	int split_fb, rc = 0;
 	u32 max_mixer_width;
-	bool dsc_merge_enabled = 0;
+	bool dsc_merge_enabled = false;
 	struct mdss_panel_info *pinfo;
 
 	if (!ctl || !ctl->panel_data) {
@@ -5483,7 +5483,6 @@ int mdss_mdp_async_ctl_flush(struct msm_fb_data_type *mfd,
 	struct mdss_overlay_private *mdp5_data = mfd_to_mdp5_data(mfd);
 	struct mdss_mdp_ctl *ctl = mdp5_data->ctl;
 	struct mdss_mdp_ctl *sctl = mdss_mdp_get_split_ctl(ctl);
-	int ret = 0;
 
 	mutex_lock(&ctl->flush_lock);
 
@@ -5492,7 +5491,7 @@ int mdss_mdp_async_ctl_flush(struct msm_fb_data_type *mfd,
 		mdss_mdp_ctl_write(sctl, MDSS_MDP_REG_CTL_FLUSH, flush_bits);
 
 	mutex_unlock(&ctl->flush_lock);
-	return ret;
+	return 0;
 }
 
 int mdss_mdp_mixer_pipe_update(struct mdss_mdp_pipe *pipe,

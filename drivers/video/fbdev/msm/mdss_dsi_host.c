@@ -641,7 +641,7 @@ static void mdss_dsi_wait_clk_lane_to_stop(struct mdss_dsi_ctrl_pdata *ctrl)
 	/* force clk lane tx stop -- bit 20 */
 	mdss_dsi_cfg_lane_ctrl(ctrl, BIT(20), 1);
 
-	if (mdss_dsi_poll_clk_lane(ctrl) == false)
+	if (!mdss_dsi_poll_clk_lane(ctrl))
 		pr_err("%s: clk lane recovery failed\n", __func__);
 
 	/* clear clk lane tx stop -- bit 20 */
@@ -1528,7 +1528,7 @@ static void mdss_dsi_schedule_dma_cmd(struct mdss_dsi_ctrl_pdata *ctrl)
 	MIPI_OUTP(ctrl->ctrl_io.base + 0x100, val); /* DMA_SCHEDULE_LINE */
 	wmb();
 
-	pr_debug("%s schedule at line %x", __func__, val);
+	pr_debug("%s schedule at line %x\n", __func__, val);
 	MDSS_XLOG(ctrl->ndx, val);
 }
 
@@ -1553,7 +1553,7 @@ static void mdss_dsi_wait4active_region(struct mdss_dsi_ctrl_pdata *ctrl)
 			retry_count++;
 		} else
 			break;
-	};
+	}
 
 	if (retry_count == MAX_BTA_WAIT_RETRY)
 		MDSS_XLOG_TOUT_HANDLER("mdp", "dsi0_ctrl",
@@ -1643,9 +1643,9 @@ int mdss_dsi_cmd_reg_tx(u32 data,
 	char *bp;
 
 	bp = (char *)&data;
-	pr_debug("%s: ", __func__);
+	pr_debug("%s:\n", __func__);
 	for (i = 0; i < 4; i++)
-		pr_debug("%x ", *bp++);
+		pr_debug("%x\n", *bp++);
 
 	pr_debug("\n");
 
@@ -3282,7 +3282,7 @@ irqreturn_t mdss_dsi_isr(int irq, void *ptr)
 			(struct mdss_dsi_ctrl_pdata *)ptr;
 
 	if (!ctrl->ctrl_base) {
-		pr_err("%s:%d DSI base adr no Initialized",
+		pr_err("%s:%d DSI base adr no Initialized\n",
 						__func__, __LINE__);
 		return IRQ_HANDLED;
 	}

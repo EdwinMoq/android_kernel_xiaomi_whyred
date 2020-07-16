@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Copyright (c) 2010-2018, The Linux Foundation. All rights reserved. */
+/* Copyright (c) 2010-2018, 2020, The Linux Foundation. All rights reserved. */
 
 #define pr_fmt(fmt)	"%s: " fmt, __func__
 
@@ -254,7 +254,7 @@ static void reset_hdcp_ddc_failures(struct hdcp_1x *hdcp)
 			pr_debug("%s: HDCP DDC Failure cleared\n",
 				HDCP_STATE_NAME);
 		else
-			pr_debug("%s: Unable to clear HDCP DDC Failure",
+			pr_debug("%s: Unable to clear HDCP DDC Failure\n",
 				HDCP_STATE_NAME);
 
 		/* Re-Enable HDCP DDC */
@@ -1520,7 +1520,7 @@ static ssize_t status_show(struct device *dev,
 	}
 
 	mutex_lock(hdcp->init_data.mutex);
-	ret = snprintf(buf, PAGE_SIZE, "%d\n", hdcp->hdcp_state);
+	ret = scnprintf(buf, PAGE_SIZE, "%d\n", hdcp->hdcp_state);
 	pr_debug("'%d'\n", hdcp->hdcp_state);
 	mutex_unlock(hdcp->init_data.mutex);
 

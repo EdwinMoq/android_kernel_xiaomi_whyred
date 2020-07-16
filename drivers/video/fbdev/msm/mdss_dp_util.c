@@ -804,7 +804,7 @@ void mdss_dp_sw_config_msa(struct mdss_dp_drv_pdata *dp)
 			DP_KHZ_TO_HZ;
 		stream_rate_khz = div_u64(dp->panel_data.panel_info.clk_rate,
 			DP_KHZ_TO_HZ);
-		pr_debug("link rate=%dkbps, stream_rate_khz=%lluKhz",
+		pr_debug("link rate=%dkbps, stream_rate_khz=%lluKhz\n",
 			lrate_kbps, stream_rate_khz);
 
 		/*
@@ -909,7 +909,7 @@ void mdss_dp_phy_aux_update_config(struct mdss_dp_drv_pdata *dp,
 			config_type);
 
 	if (!cfg) {
-		pr_err("invalid config type %s",
+		pr_err("invalid config type %s\n",
 			mdss_dp_phy_aux_config_type_to_string(config_type));
 		return;
 	}
@@ -957,7 +957,7 @@ void mdss_dp_phy_aux_setup(struct mdss_dp_drv_pdata *dp)
 			cfg->lut[cfg->current_index]);
 		writel_relaxed(cfg->lut[cfg->current_index],
 				dp->phy_io.base + cfg->offset);
-	};
+	}
 	writel_relaxed(0x1e, adjusted_phy_io_base + DP_PHY_AUX_INTERRUPT_MASK);
 }
 

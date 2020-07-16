@@ -1595,7 +1595,7 @@ static inline bool mdss_mdp_is_lineptr_supported(struct mdss_mdp_ctl *ctl)
 	pinfo = &ctl->panel_data->panel_info;
 
 	return (ctl->is_video_mode || ((pinfo->type == MIPI_CMD_PANEL)
-			&& (pinfo->te.tear_check_en)) ? true : false);
+			&& (pinfo->te.tear_check_en)));
 }
 
 static inline bool mdss_mdp_is_map_needed(struct mdss_data_type *mdata,

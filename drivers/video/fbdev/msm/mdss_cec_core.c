@@ -413,10 +413,10 @@ static ssize_t enable_show(struct device *dev,
 	spin_lock_irqsave(&ctl->lock, flags);
 	if (ctl->enabled) {
 		pr_debug("cec is enabled\n");
-		ret = snprintf(buf, PAGE_SIZE, "%d\n", 1);
+		ret = scnprintf(buf, PAGE_SIZE, "%d\n", 1);
 	} else {
 		pr_err("cec is disabled\n");
-		ret = snprintf(buf, PAGE_SIZE, "%d\n", 0);
+		ret = scnprintf(buf, PAGE_SIZE, "%d\n", 0);
 	}
 	spin_unlock_irqrestore(&ctl->lock, flags);
 end:
@@ -490,7 +490,7 @@ static ssize_t enable_compliance_show(struct device *dev,
 	}
 
 	spin_lock_irqsave(&ctl->lock, flags);
-	ret = snprintf(buf, PAGE_SIZE, "%d\n",
+	ret = scnprintf(buf, PAGE_SIZE, "%d\n",
 		ctl->compliance_enabled);
 
 	spin_unlock_irqrestore(&ctl->lock, flags);
@@ -558,7 +558,7 @@ static ssize_t logical_addr_show(struct device *dev,
 	}
 
 	spin_lock_irqsave(&ctl->lock, flags);
-	ret = snprintf(buf, PAGE_SIZE, "%d\n", ctl->logical_addr);
+	ret = scnprintf(buf, PAGE_SIZE, "%d\n", ctl->logical_addr);
 	spin_unlock_irqrestore(&ctl->lock, flags);
 
 	return ret;

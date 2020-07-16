@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2016-2017, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2017, 2020, The Linux Foundation. All rights reserved.
  *
  */
 
@@ -381,7 +381,7 @@ int mdss_dsi_phy_v3_init(struct mdss_dsi_ctrl_pdata *ctrl,
 	}
 
 	if (mdss_dsi_phy_v3_is_pll_on(ctrl))
-		pr_warn("PLL already on prior to configuring phy");
+		pr_warn("PLL already on prior to configuring phy\n");
 
 	/* wait for REFGEN READY */
 	rc = readl_poll_timeout_atomic(ctrl->phy_io.base + CMN_PHY_STATUS,

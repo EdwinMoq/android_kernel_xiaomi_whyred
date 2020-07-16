@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2015, 2018, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2015, 2018, 2020, The Linux Foundation. All rights reserved.
+ *
  */
 
 #include <linux/i2c.h>
@@ -36,7 +37,7 @@ static ssize_t device_name_show(struct device *dev,
 		return -EINVAL;
 	}
 
-	return snprintf(buf, PAGE_SIZE, "%s:%d\n", device->chip_name,
+	return scnprintf(buf, PAGE_SIZE, "%s:%d\n", device->chip_name,
 						   device->instance_id);
 }
 
@@ -58,7 +59,7 @@ static ssize_t client_list_show(struct device *dev,
 
 	list_for_each(pos, &device->client_list) {
 		c = list_entry(pos, struct msm_dba_client_info, list);
-		bytes += snprintf(buf + bytes, (PAGE_SIZE - bytes), "%s\n",
+		bytes += scnprintf(buf + bytes, (PAGE_SIZE - bytes), "%s\n",
 				c->client_name);
 	}
 
@@ -82,12 +83,12 @@ static ssize_t power_status_show(struct device *dev,
 	}
 
 	mutex_lock(&device->dev_mutex);
-	bytes = snprintf(buf, PAGE_SIZE, "power_status:%d\n",
+	bytes = scnprintf(buf, PAGE_SIZE, "power_status:%d\n",
 			 device->power_status);
 
 	list_for_each(pos, &device->client_list) {
 		c = list_entry(pos, struct msm_dba_client_info, list);
-		bytes += snprintf(buf + bytes, (PAGE_SIZE - bytes),
+		bytes += scnprintf(buf + bytes, (PAGE_SIZE - bytes),
 				  "client: %s, status = %d\n",
 				  c->client_name, c->power_on);
 	}
@@ -111,12 +112,12 @@ static ssize_t video_status_show(struct device *dev,
 	}
 
 	mutex_lock(&device->dev_mutex);
-	bytes = snprintf(buf, PAGE_SIZE, "video_status:%d\n",
+	bytes = scnprintf(buf, PAGE_SIZE, "video_status:%d\n",
 			 device->video_status);
 
 	list_for_each(pos, &device->client_list) {
 		c = list_entry(pos, struct msm_dba_client_info, list);
-		bytes += snprintf(buf + bytes, (PAGE_SIZE - bytes),
+		bytes += scnprintf(buf + bytes, (PAGE_SIZE - bytes),
 				  "client: %s, status = %d\n",
 				  c->client_name, c->video_on);
 	}
@@ -140,12 +141,12 @@ static ssize_t audio_status_show(struct device *dev,
 	}
 
 	mutex_lock(&device->dev_mutex);
-	bytes = snprintf(buf, PAGE_SIZE, "audio_status:%d\n",
+	bytes = scnprintf(buf, PAGE_SIZE, "audio_status:%d\n",
 			 device->audio_status);
 
 	list_for_each(pos, &device->client_list) {
 		c = list_entry(pos, struct msm_dba_client_info, list);
-		bytes += snprintf(buf + bytes, (PAGE_SIZE - bytes),
+		bytes += scnprintf(buf + bytes, (PAGE_SIZE - bytes),
 				  "client: %s, status = %d\n",
 				  c->client_name, c->audio_on);
 	}
@@ -201,7 +202,7 @@ static ssize_t write_reg_store(struct device *dev,
 						       (u32)val);
 
 			if (rc) {
-				pr_err("%s: failed to write reg %d", __func__,
+				pr_err("%s: failed to write reg %d\n", __func__,
 				       rc);
 			}
 		} else {
@@ -228,7 +229,7 @@ static ssize_t read_reg_show(struct device *dev,
 
 	mutex_lock(&device->dev_mutex);
 
-	bytes = snprintf(buf, PAGE_SIZE, "0x%x\n", device->register_val);
+	bytes = scnprintf(buf, PAGE_SIZE, "0x%x\n", device->register_val);
 
 	mutex_unlock(&device->dev_mutex);
 
@@ -262,7 +263,7 @@ static ssize_t read_reg_store(struct device *dev,
 						      &val);
 
 			if (rc) {
-				pr_err("%s: failed to write reg %d", __func__,
+				pr_err("%s: failed to write reg %d\n", __func__,
 				       rc);
 			} else {
 				device->register_val = val;

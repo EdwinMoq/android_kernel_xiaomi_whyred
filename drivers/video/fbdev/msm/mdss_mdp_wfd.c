@@ -53,7 +53,7 @@ int mdss_mdp_acquire_wb(struct mdss_mdp_ctl *ctl)
 		rc = wait_event_timeout(mdp5_data->wb_waitq,
 			atomic_read(&mdp5_data->wb_busy) == 0, KOFF_TIMEOUT);
 		if (!rc) {
-			pr_err("%s: Wait for WB timed out. wb_busy=%d",
+			pr_err("%s: Wait for WB timed out. wb_busy=%d\n",
 				__func__, atomic_read(&mdp5_data->wb_busy));
 			ret = -ETIMEDOUT;
 		} else if (!atomic_read(&mdp5_data->wb_busy))
@@ -311,7 +311,7 @@ int mdss_mdp_wb_import_data(struct device *device,
 		flags = MDP_SECURE_OVERLAY_SESSION;
 
 	if (buffer->plane_count > MAX_PLANES) {
-		pr_err("buffer plane_count exceeds MAX_PLANES limit:%d",
+		pr_err("buffer plane_count exceeds MAX_PLANES limit:%d\n",
 				buffer->plane_count);
 		return -EINVAL;
 	}

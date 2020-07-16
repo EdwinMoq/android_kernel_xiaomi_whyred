@@ -780,7 +780,7 @@ int mdss_mdp_smp_reserve(struct mdss_mdp_pipe *pipe)
 	u32 num_blks = 0, reserved = 0;
 	struct mdss_mdp_plane_sizes ps;
 	int i, rc = 0;
-	bool force_alloc = 0;
+	bool force_alloc = false;
 
 	if (mdata->has_pixel_ram)
 		return 0;
@@ -2573,7 +2573,7 @@ static u32 __get_ts_bytes(struct mdss_mdp_pipe *pipe,
 		pr_err("unknown multirect mode!\n");
 		goto exit;
 	break;
-	};
+	}
 
 	ts_bytes &= 0xFF;
 	ts_bytes |= BIT(27) | BIT(31);

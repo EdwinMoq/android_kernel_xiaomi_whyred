@@ -561,7 +561,7 @@ static int mdss_rgb_set_clk_src(struct mdss_rgb_data *ctrl)
 		goto error;
 	}
 
-	pr_debug("%s: rgb clock source set to pixel", __func__);
+	pr_debug("%s: rgb clock source set to pixel\n", __func__);
 error:
 	return rc;
 }

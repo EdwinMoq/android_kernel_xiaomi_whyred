@@ -1726,7 +1726,7 @@ int mdss_mdp_qseed3_setup(struct mdp_scale_data_v2 *scaler,
 	uint32_t op_mode = 0;
 	uint32_t phase_init, preload, src_y_rgb, src_uv, dst;
 
-	pr_debug("scaler->enable=%d", scaler->enable);
+	pr_debug("scaler->enable=%d\n", scaler->enable);
 
 
 	if (fmt->is_yuv)
@@ -2365,7 +2365,7 @@ static int pp_dspp_setup(u32 disp_num, struct mdss_mdp_mixer *mixer,
 
 	side = pp_num_to_side(ctl, dspp_num);
 	if (side < 0) {
-		pr_err("invalid side information for dspp_num %d", dspp_num);
+		pr_err("invalid side information for dspp_num %d\n", dspp_num);
 		return -EINVAL;
 	}
 
@@ -2758,13 +2758,13 @@ int mdss_mdp_pp_setup_locked(struct mdss_mdp_ctl *ctl,
 	if ((!ctl) || (!ctl->mfd) || (!mdss_pp_res) || (!ctl->mdata))
 		return -EINVAL;
 	if (!info) {
-		pr_err("pp_program_info is NULL");
+		pr_err("pp_program_info is NULL\n");
 		return -EINVAL;
 	}
 	if (!(info->pp_program_mask == PP_NORMAL_PROGRAM_MASK ||
 		info->pp_program_mask == PP_DEFER_PROGRAM_MASK ||
 		info->pp_program_mask == PP_PROGRAM_ALL)) {
-		pr_err("Invalid pp program mask : %x ", info->pp_program_mask);
+		pr_err("Invalid pp program mask : %x\n", info->pp_program_mask);
 		return -EINVAL;
 	}
 
@@ -2823,7 +2823,7 @@ int mdss_mdp_pp_setup_locked(struct mdss_mdp_ctl *ctl,
 			ret = mdss_update_reg_bus_vote(mdata->pp_reg_bus_clt,
 					VOTE_INDEX_HIGH);
 			if (ret)
-				pr_err("Updated reg_bus_scale failed, ret = %d",
+				pr_err("Updated reg_bus_scale failed, ret = %d\n",
 									ret);
 		}
 	}
@@ -2879,7 +2879,7 @@ int mdss_mdp_pp_setup_locked(struct mdss_mdp_ctl *ctl,
 			ret = mdss_update_reg_bus_vote(mdata->pp_reg_bus_clt,
 					VOTE_INDEX_DISABLE);
 			if (ret)
-				pr_err("Updated reg_bus_scale failed, ret = %d",
+				pr_err("Updated reg_bus_scale failed, ret = %d\n",
 									ret);
 		}
 		if (IS_PP_RESUME_COMMIT(flags))
@@ -3256,14 +3256,6 @@ pp_exit:
 void mdss_mdp_pp_term(struct device *dev)
 {
 	struct mdss_data_type *mdata = mdss_mdp_get_mdata();
-
-	if (mdss_pp_res) {
-		mutex_lock(&mdss_pp_mutex);
-		devm_kfree(dev, mdss_pp_res->dspp_hist);
-		devm_kfree(dev, mdss_pp_res);
-		mdss_pp_res = NULL;
-		mutex_unlock(&mdss_pp_mutex);
-	}
 
 	mdss_reg_bus_vote_client_destroy(mdata->pp_reg_bus_clt);
 	mdata->pp_reg_bus_clt = NULL;
@@ -4132,7 +4124,7 @@ clock_off:
 			ret = pp_igc_lut_cache_params(config,
 						&res_cache, copy_from_kernel);
 			if (ret) {
-				pr_err("igc caching failed ret %d", ret);
+				pr_err("igc caching failed ret %d\n", ret);
 				goto igc_config_exit;
 			} else
 				goto igc_set_dirty;
@@ -4266,14 +4258,12 @@ static void pp_read_gc_one_lut(char __iomem *addr,
 
 static int pp_read_argc_lut(struct mdp_pgc_lut_data *config, char __iomem *addr)
 {
-	int ret = 0;
-
 	pp_read_gc_one_lut(addr, config->r_data);
 	addr += 0x10;
 	pp_read_gc_one_lut(addr, config->g_data);
 	addr += 0x10;
 	pp_read_gc_one_lut(addr, config->b_data);
-	return ret;
+	return 0;
 }
 
 static int pp_read_argc_lut_cached(struct mdp_pgc_lut_data *config)
@@ -4330,8 +4320,8 @@ int mdss_mdp_argc_config(struct msm_fb_data_type *mfd,
 				struct mdp_pgc_lut_data *config,
 				u32 *copyback)
 {
-	int ret = 0;
-	u32 disp_num, num = 0, is_lm = 0;
+	int ret = 0, num = 0;
+	u32 disp_num, is_lm = 0;
 	struct mdp_pgc_lut_data local_cfg;
 	struct mdp_pgc_lut_data *pgc_ptr;
 	u32 tbl_size, r_size, g_size, b_size;
@@ -5391,7 +5381,7 @@ static int pp_hist_collect(struct mdp_histogram_data *hist,
 	spin_lock_irqsave(&hist_info->hist_lock, flag);
 	if ((hist_info->col_en == 0) ||
 		(hist_info->col_state != HIST_READY)) {
-		pr_err("invalid params for histogram hist_info->col_en %d hist_info->col_state %d",
+		pr_err("invalid params for histogram hist_info->col_en %d hist_info->col_state %d\n",
 			hist_info->col_en, hist_info->col_state);
 		ret = -ENODATA;
 		spin_unlock_irqrestore(&hist_info->hist_lock, flag);
@@ -5769,7 +5759,7 @@ void mdss_mdp_hist_intr_done(u32 isr)
 		} else {
 			spin_unlock(&hist_info->hist_lock);
 		}
-	};
+	}
 }
 
 static struct msm_fb_data_type *mdss_get_mfd_from_index(int index)
@@ -6826,7 +6816,6 @@ int mdss_mdp_ad_addr_setup(struct mdss_data_type *mdata, u32 *ad_offsets)
 
 	if (!mdata->ad_cfgs) {
 		pr_err("unable to setup assertive display:devm_kzalloc fail\n");
-		devm_kfree(&mdata->pdev->dev, mdata->ad_off);
 		return -ENOMEM;
 	}
 

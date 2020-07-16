@@ -227,7 +227,7 @@ static int mdss_hdcp_2x_get_next_message(struct mdss_hdcp_2x_ctrl *hdcp,
 	case REP_STREAM_MANAGE:
 		return REP_STREAM_READY;
 	default:
-		pr_err("Unknown message ID (%d)", hdcp->last_msg);
+		pr_err("Unknown message ID (%d)\n", hdcp->last_msg);
 		return -EINVAL;
 	}
 }
@@ -602,9 +602,9 @@ static void mdss_hdcp_2x_msg_recvd(struct mdss_hdcp_2x_ctrl *hdcp)
 			mdss_hdcp_2x_message_name(out_msg));
 
 	if (out_msg == AKE_NO_STORED_KM)
-		hdcp->no_stored_km = 1;
+		hdcp->no_stored_km = true;
 	else
-		hdcp->no_stored_km = 0;
+		hdcp->no_stored_km = false;
 
 	if (out_msg == SKE_SEND_EKS) {
 		hdcp->repeater_flag = hdcp->app_data.repeater_flag;
@@ -663,7 +663,7 @@ static int mdss_hdcp_2x_wakeup(struct mdss_hdcp_2x_wakeup_data *data)
 
 	switch (hdcp->wakeup_cmd) {
 	case HDCP_2X_CMD_START:
-		hdcp->no_stored_km = 0;
+		hdcp->no_stored_km = false;
 		hdcp->repeater_flag = false;
 		hdcp->update_stream = false;
 		hdcp->last_msg = INVALID_MESSAGE;

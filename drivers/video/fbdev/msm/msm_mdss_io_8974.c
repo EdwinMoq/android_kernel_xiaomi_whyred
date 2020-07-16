@@ -1321,12 +1321,12 @@ static void mdss_dsi_phy_regulator_ctrl(struct mdss_dsi_ctrl_pdata *ctrl,
 			 */
 			if (!mdss_dsi_is_hw_config_dual(sdata) ||
 				(other_ctrl && (!other_ctrl->is_phyreg_enabled
-						|| other_ctrl->mmss_clamp)))
+					|| other_ctrl->mmss_clamp)))
 				mdss_dsi_28nm_phy_regulator_enable(ctrl);
-				break;
+			break;
 			}
 		}
-		ctrl->is_phyreg_enabled = 1;
+		ctrl->is_phyreg_enabled = true;
 	} else {
 		/*
 		 * In split-dsi/dual-dsi configuration, the dsi phy regulator
@@ -1340,7 +1340,7 @@ static void mdss_dsi_phy_regulator_ctrl(struct mdss_dsi_ctrl_pdata *ctrl,
 		} else {
 			mdss_dsi_phy_regulator_disable(ctrl);
 		}
-		ctrl->is_phyreg_enabled = 0;
+		ctrl->is_phyreg_enabled = false;
 	}
 	mutex_unlock(&sdata->phy_reg_lock);
 }
@@ -1437,24 +1437,6 @@ void mdss_dsi_phy_init(struct mdss_dsi_ctrl_pdata *ctrl)
 
 void mdss_dsi_core_clk_deinit(struct device *dev, struct dsi_shared_data *sdata)
 {
-	if (sdata->mmss_misc_ahb_clk)
-		devm_clk_put(dev, sdata->mmss_misc_ahb_clk);
-	if (sdata->ext_pixel1_clk)
-		devm_clk_put(dev, sdata->ext_pixel1_clk);
-	if (sdata->ext_byte1_clk)
-		devm_clk_put(dev, sdata->ext_byte1_clk);
-	if (sdata->ext_pixel0_clk)
-		devm_clk_put(dev, sdata->ext_pixel0_clk);
-	if (sdata->ext_byte0_clk)
-		devm_clk_put(dev, sdata->ext_byte0_clk);
-	if (sdata->axi_clk)
-		devm_clk_put(dev, sdata->axi_clk);
-	if (sdata->ahb_clk)
-		devm_clk_put(dev, sdata->ahb_clk);
-	if (sdata->mnoc_clk)
-		devm_clk_put(dev, sdata->mnoc_clk);
-	if (sdata->mdp_core_clk)
-		devm_clk_put(dev, sdata->mdp_core_clk);
 }
 
 int mdss_dsi_clk_refresh(struct mdss_panel_data *pdata, bool update_phy)
@@ -1624,20 +1606,6 @@ error:
 void mdss_dsi_link_clk_deinit(struct device *dev,
 	struct mdss_dsi_ctrl_pdata *ctrl)
 {
-	if (ctrl->byte_intf_clk)
-		devm_clk_put(dev, ctrl->byte_intf_clk);
-	if (ctrl->vco_dummy_clk)
-		devm_clk_put(dev, ctrl->vco_dummy_clk);
-	if (ctrl->pixel_clk_rcg)
-		devm_clk_put(dev, ctrl->pixel_clk_rcg);
-	if (ctrl->byte_clk_rcg)
-		devm_clk_put(dev, ctrl->byte_clk_rcg);
-	if (ctrl->byte_clk)
-		devm_clk_put(dev, ctrl->byte_clk);
-	if (ctrl->esc_clk)
-		devm_clk_put(dev, ctrl->esc_clk);
-	if (ctrl->pixel_clk)
-		devm_clk_put(dev, ctrl->pixel_clk);
 }
 
 int mdss_dsi_link_clk_init(struct platform_device *pdev,
@@ -1716,18 +1684,6 @@ error:
 void mdss_dsi_shadow_clk_deinit(struct device *dev,
 	struct mdss_dsi_ctrl_pdata *ctrl)
 {
-	if (ctrl->mux_byte_clk)
-		devm_clk_put(dev, ctrl->mux_byte_clk);
-	if (ctrl->mux_pixel_clk)
-		devm_clk_put(dev, ctrl->mux_pixel_clk);
-	if (ctrl->pll_byte_clk)
-		devm_clk_put(dev, ctrl->pll_byte_clk);
-	if (ctrl->pll_pixel_clk)
-		devm_clk_put(dev, ctrl->pll_pixel_clk);
-	if (ctrl->shadow_byte_clk)
-		devm_clk_put(dev, ctrl->shadow_byte_clk);
-	if (ctrl->shadow_pixel_clk)
-		devm_clk_put(dev, ctrl->shadow_pixel_clk);
 }
 
 int mdss_dsi_shadow_clk_init(struct platform_device *pdev,
@@ -2701,7 +2657,7 @@ int mdss_dsi_pre_clkon_cb(void *priv,
 	}
 
 	if ((clk_type & MDSS_DSI_CORE_CLK) && (new_state == MDSS_DSI_CLK_ON) &&
-	    (ctrl->core_power == false)) {
+	    (!ctrl->core_power)) {
 		sdata = ctrl->shared_data;
 		pdata = &ctrl->panel_data;
 		/*

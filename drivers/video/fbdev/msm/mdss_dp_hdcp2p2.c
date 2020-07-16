@@ -112,15 +112,12 @@ static int dp_hdcp2p2_copy_buf(struct dp_hdcp2p2_ctrl *ctrl,
 
 	kzfree(ctrl->msg_buf);
 
-	ctrl->msg_buf = kzalloc(ctrl->send_msg_len, GFP_KERNEL);
+	ctrl->msg_buf = kmemdup(data->buf+1, ctrl->send_msg_len, GFP_KERNEL);
 
 	if (!ctrl->msg_buf) {
 		mutex_unlock(&ctrl->msg_lock);
 		return -ENOMEM;
 	}
-
-	/* ignore first byte as it contains message id */
-	memcpy(ctrl->msg_buf, data->buf + 1, ctrl->send_msg_len);
 
 	mutex_unlock(&ctrl->msg_lock);
 
@@ -275,7 +272,6 @@ static int dp_hdcp2p2_authenticate(void *input)
 	struct dp_hdcp2p2_ctrl *ctrl = input;
 	struct hdcp_transport_wakeup_data cdata = {
 			HDCP_TRANSPORT_CMD_AUTHENTICATE};
-	int rc = 0;
 
 	kthread_flush_worker(&ctrl->worker);
 
@@ -287,7 +283,7 @@ static int dp_hdcp2p2_authenticate(void *input)
 	cdata.context = input;
 	dp_hdcp2p2_wakeup(&cdata);
 
-	return rc;
+	return 0;
 }
 
 static int dp_hdcp2p2_reauthenticate(void *input)

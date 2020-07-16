@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2015, 2017-2018, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2015, 2017-2018, 2020, The Linux Foundation. All rights reserved.
  *
  */
 
@@ -349,7 +349,7 @@ int msm_dba_helper_register_irq(struct msm_dba_device_info *dev,
 	mutex_lock(&dev->dev_mutex);
 
 	rc = request_threaded_irq(irq, NULL, msm_dba_helper_irq_handler,
-				  irq_flags, dev->chip_name, dev);
+				irq_flags | IRQF_ONESHOT, dev->chip_name, dev);
 
 	if (rc)
 		pr_err("%s:%s: Failed to register irq\n", dev->chip_name,

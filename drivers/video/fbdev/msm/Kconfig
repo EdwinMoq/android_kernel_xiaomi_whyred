@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-only
 source "drivers/video/fbdev/msm/msm_dba/Kconfig"
 
 if FB_MSM
@@ -8,11 +9,17 @@ config FB_MSM_MDSS_COMMON
 choice
 	prompt "MDP HW version"
 	default FB_MSM_MDP
+	help
+	The Mobile Display Processor (MDP) hardware version used in
+	the chipset. The hardware version varies across multiple
+	chipsets.
+
+	Support for MDP HW.
 
 config FB_MSM_MDP
 	bool "MDP HW"
 	select FB_MSM_MDP_HW
-	---help---
+	help
 	The Mobile Display Processor (MDP) driver support devices which
 	contain MDP hardware block.
 
@@ -23,7 +30,7 @@ config FB_MSM_MDSS
 	bool "MDSS HW"
 	select SYNC_FILE
 	select FB_MSM_MDSS_COMMON
-	---help---
+	help
 	The Mobile Display Sub System (MDSS) driver supports devices which
 	contain MDSS hardware block.
 
@@ -33,7 +40,7 @@ config FB_MSM_MDSS
 
 config FB_MSM_MDP_NONE
 	bool "MDP HW None"
-	---help---
+	help
 	This is used for platforms without Mobile Display Sub System (MDSS).
 	mdm platform don't have MDSS hardware block.
 

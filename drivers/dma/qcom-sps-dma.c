@@ -706,6 +706,6 @@ static struct platform_driver qbam_driver = {
 
 module_platform_driver(qbam_driver);
 
-MODULE_DESCRIPTION("DMA-API driver to qti BAM");
+MODULE_DESCRIPTION("DMA-API driver to qcom BAM");
 MODULE_LICENSE("GPL v2");
 MODULE_ALIAS("platform:qcom-sps-dma");
