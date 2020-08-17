@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /* Copyright (c) 2009-2020, The Linux Foundation. All rights reserved.
- *
  */
 
 #define pr_fmt(fmt) "%s:%d\n" fmt, __func__, __LINE__
@@ -334,6 +333,7 @@ static int32_t msm_flash_i2c_init(
 msm_flash_i2c_init_fail:
 	return rc;
 }
+
 static int32_t msm_flash_gpio_init(
 	struct msm_flash_ctrl_t *flash_ctrl,
 	struct msm_flash_cfg_data_t *flash_data)

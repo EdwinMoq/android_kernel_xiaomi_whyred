@@ -805,13 +805,62 @@ static int spi_geni_unprepare_message(struct spi_master *spi_mas,
 	return 0;
 }
 
+static void spi_geni_set_sampling_rate(struct spi_geni_master *mas,
+	unsigned int major, unsigned int minor)
+{
+	u32 cpol, cpha, cfg_reg108, cfg_reg109, cfg_seq_start;
+
+	cpol = geni_read_reg(mas->base, SE_SPI_CPOL);
+	cpha = geni_read_reg(mas->base, SE_SPI_CPHA);
+	cfg_reg108 = geni_read_reg(mas->base, SE_GENI_CFG_REG108);
+	cfg_reg109 = geni_read_reg(mas->base, SE_GENI_CFG_REG109);
+	/* clear CPOL bit */
+	cfg_reg108 &= ~(1 << CPOL_CTRL_SHFT);
+
+	if (major == 1 && minor == 0) {
+		/* Write 1 to RX_SI_EN2IO_DELAY reg */
+		cfg_reg108 &= ~(0x7 << RX_SI_EN2IO_DELAY_SHFT);
+		cfg_reg108 |= (1 << RX_SI_EN2IO_DELAY_SHFT);
+		/* Write 0 to RX_IO_POS_FF_EN_SEL reg */
+		cfg_reg108 &= ~(1 << RX_IO_POS_FF_EN_SEL_SHFT);
+	} else if ((major < 2) || (major == 2 && minor < 5)) {
+		/* Write 0 to RX_IO_EN2CORE_EN_DELAY reg */
+		cfg_reg108 &= ~(0x7 << RX_IO_EN2CORE_EN_DELAY_SHFT);
+	} else {
+		/*
+		 * Write miso_sampling_ctrl_set to
+		 * RX_IO_EN2CORE_EN_DELAY reg
+		 */
+		cfg_reg108 &= ~(0x7 << RX_IO_EN2CORE_EN_DELAY_SHFT);
+		cfg_reg108 |= (mas->miso_sampling_ctrl_val <<
+				RX_IO_EN2CORE_EN_DELAY_SHFT);
+	}
+
+	geni_write_reg(cfg_reg108, mas->base, SE_GENI_CFG_REG108);
+
+	if (cpol == 0 && cpha == 0)
+		cfg_reg109 = 1;
+	else if (cpol == 1 && cpha == 0)
+		cfg_reg109 = 0;
+	geni_write_reg(cfg_reg109, mas->base,
+				SE_GENI_CFG_REG109);
+	if (!(major == 1 && minor == 0))
+		geni_write_reg(1, mas->base, SE_GENI_CFG_SEQ_START);
+	cfg_reg108 = geni_read_reg(mas->base, SE_GENI_CFG_REG108);
+	cfg_reg109 = geni_read_reg(mas->base, SE_GENI_CFG_REG109);
+	cfg_seq_start = geni_read_reg(mas->base, SE_GENI_CFG_SEQ_START);
+
+	GENI_SE_DBG(mas->ipc, false, mas->dev,
+		"%s cfg108: 0x%x cfg109: 0x%x cfg_seq_start: 0x%x\n",
+		__func__, cfg_reg108, cfg_reg109, cfg_seq_start);
+}
+
 static int spi_geni_prepare_transfer_hardware(struct spi_master *spi)
 {
 	struct spi_geni_master *mas = spi_master_get_devdata(spi);
 	int ret = 0, count = 0;
 	u32 max_speed = spi->cur_msg->spi->max_speed_hz;
 	struct se_geni_rsc *rsc = &mas->spi_rsc;
-	u32 cpol, cpha, cfg_reg108, cfg_reg109, cfg_seq_start;
 
 	/* Adjust the IB based on the max speed of the slave.*/
 	rsc->ib = max_speed * DEFAULT_BUS_WIDTH;
@@ -864,11 +913,17 @@ static int spi_geni_prepare_transfer_hardware(struct spi_master *spi)
 		/* Transmit an entire FIFO worth of data per IRQ */
 		mas->tx_wm = 1;
 
-		mas->tx = dma_request_slave_channel(mas->dev, "tx");
-		if (IS_ERR_OR_NULL(mas->tx)) {
-			dev_info(mas->dev, "Failed to get tx DMA ch %ld\n",
+		mas->shared_se =
+			(geni_read_reg(mas->base, GENI_IF_FIFO_DISABLE_RO) &
+							FIFO_IF_DISABLE);
+		if (mas->shared_se) {
+			mas->tx = dma_request_slave_channel(mas->dev, "tx");
+			if (IS_ERR_OR_NULL(mas->tx)) {
+				dev_info(mas->dev,
+					"Failed to get tx DMA ch %ld\n",
 							PTR_ERR(mas->tx));
-		} else {
+				goto setup_ipc;
+			}
 			mas->rx = dma_request_slave_channel(mas->dev, "rx");
 			if (IS_ERR_OR_NULL(mas->rx)) {
 				dev_info(mas->dev, "Failed to get rx DMA ch %ld\n",
@@ -933,56 +988,9 @@ setup_ipc:
 			__func__, major, minor, step, mas->oversampling);
 		}
 
-		if (!mas->set_miso_sampling)
-			goto shared_se;
+		if (mas->set_miso_sampling)
+			spi_geni_set_sampling_rate(mas, major, minor);
 
-		cpol = geni_read_reg(mas->base, SE_SPI_CPOL);
-		cpha = geni_read_reg(mas->base, SE_SPI_CPHA);
-		cfg_reg108 = geni_read_reg(mas->base, SE_GENI_CFG_REG108);
-		cfg_reg109 = geni_read_reg(mas->base, SE_GENI_CFG_REG109);
-		/* clear CPOL bit */
-		cfg_reg108 &= ~(1 << CPOL_CTRL_SHFT);
-
-		if (major == 1 && minor == 0) {
-			/* Write 1 to RX_SI_EN2IO_DELAY reg */
-			cfg_reg108 &= ~(0x7 << RX_SI_EN2IO_DELAY_SHFT);
-			cfg_reg108 |= (1 << RX_SI_EN2IO_DELAY_SHFT);
-			/* Write 0 to RX_IO_POS_FF_EN_SEL reg */
-			cfg_reg108 &= ~(1 << RX_IO_POS_FF_EN_SEL_SHFT);
-		} else if ((major < 2) || (major == 2 && minor < 5)) {
-			/* Write 0 to RX_IO_EN2CORE_EN_DELAY reg */
-			cfg_reg108 &= ~(0x7 << RX_IO_EN2CORE_EN_DELAY_SHFT);
-		} else {
-			/*
-			 * Write miso_sampling_ctrl_set to
-			 * RX_IO_EN2CORE_EN_DELAY reg
-			 */
-			cfg_reg108 &= ~(0x7 << RX_IO_EN2CORE_EN_DELAY_SHFT);
-			cfg_reg108 |= (mas->miso_sampling_ctrl_val <<
-					RX_IO_EN2CORE_EN_DELAY_SHFT);
-		}
-
-		geni_write_reg(cfg_reg108, mas->base, SE_GENI_CFG_REG108);
-
-		if (cpol == 0 && cpha == 0)
-			cfg_reg109 = 1;
-		else if (cpol == 1 && cpha == 0)
-			cfg_reg109 = 0;
-		geni_write_reg(cfg_reg109, mas->base,
-					SE_GENI_CFG_REG109);
-		if (!(major == 1 && minor == 0))
-			geni_write_reg(1, mas->base, SE_GENI_CFG_SEQ_START);
-		cfg_reg108 = geni_read_reg(mas->base, SE_GENI_CFG_REG108);
-		cfg_reg109 = geni_read_reg(mas->base, SE_GENI_CFG_REG109);
-		cfg_seq_start = geni_read_reg(mas->base, SE_GENI_CFG_SEQ_START);
-
-		GENI_SE_DBG(mas->ipc, false, mas->dev,
-			"%s cfg108: 0x%x cfg109: 0x%x cfg_seq_start: 0x%x\n",
-			__func__, cfg_reg108, cfg_reg109, cfg_seq_start);
-shared_se:
-		mas->shared_se =
-			(geni_read_reg(mas->base, GENI_IF_FIFO_DISABLE_RO) &
-							FIFO_IF_DISABLE);
 		if (mas->dis_autosuspend)
 			GENI_SE_DBG(mas->ipc, false, mas->dev,
 					"Auto Suspend is disabled\n");
@@ -1025,10 +1033,11 @@ static int spi_geni_unprepare_transfer_hardware(struct spi_master *spi)
 	return 0;
 }
 
-static void setup_fifo_xfer(struct spi_transfer *xfer,
+static int setup_fifo_xfer(struct spi_transfer *xfer,
 				struct spi_geni_master *mas, u16 mode,
 				struct spi_master *spi)
 {
+	int ret = 0;
 	u32 m_cmd = 0;
 	u32 m_param = 0;
 	u32 spi_tx_cfg = geni_read_reg(mas->base, SE_SPI_TRANS_CFG);
@@ -1041,7 +1050,6 @@ static void setup_fifo_xfer(struct spi_transfer *xfer,
 
 	/* Speed and bits per word can be overridden per transfer */
 	if (xfer->speed_hz != mas->cur_speed_hz) {
-		int ret = 0;
 		u32 clk_sel = 0;
 		u32 m_clk_cfg = 0;
 		int idx = 0;
@@ -1051,7 +1059,7 @@ static void setup_fifo_xfer(struct spi_transfer *xfer,
 		if (ret) {
 			dev_err(mas->dev, "%s:Err setting clks:%d\n",
 								__func__, ret);
-			return;
+			return ret;
 		}
 		mas->cur_speed_hz = xfer->speed_hz;
 		clk_sel |= (idx & CLK_SEL_MSK);
@@ -1117,13 +1125,14 @@ static void setup_fifo_xfer(struct spi_transfer *xfer,
 		__func__, trans_len, xfer->len, spi_tx_cfg, m_cmd,
 			xfer->cs_change, mas->cur_xfer_mode);
 	if ((m_cmd & SPI_RX_ONLY) && (mas->cur_xfer_mode == SE_DMA)) {
-		int ret = 0;
-
 		ret =  geni_se_rx_dma_prep(mas->wrapper_dev, mas->base,
 				xfer->rx_buf, xfer->len, &xfer->rx_dma);
-		if (ret)
+		if (ret) {
 			GENI_SE_ERR(mas->ipc, true, mas->dev,
 				"Failed to setup Rx dma %d\n", ret);
+			xfer->rx_dma = 0;
+			return ret;
+		}
 	}
 	if (m_cmd & SPI_TX_ONLY) {
 		if (mas->cur_xfer_mode == FIFO_MODE) {
@@ -1135,14 +1144,18 @@ static void setup_fifo_xfer(struct spi_transfer *xfer,
 			ret =  geni_se_tx_dma_prep(mas->wrapper_dev, mas->base,
 					(void *)xfer->tx_buf, xfer->len,
 							&xfer->tx_dma);
-			if (ret)
+			if (ret) {
 				GENI_SE_ERR(mas->ipc, true, mas->dev,
 					"Failed to setup tx dma %d\n", ret);
+				xfer->tx_dma = 0;
+				return ret;
+			}
 		}
 	}
 
 	/* Ensure all writes are done before the WM interrupt */
 	mb();
+	return ret;
 }
 
 static void handle_fifo_timeout(struct spi_geni_master *mas,
@@ -1170,7 +1183,7 @@ static void handle_fifo_timeout(struct spi_geni_master *mas,
 				"Failed to cancel/abort m_cmd\n");
 	}
 	if (mas->cur_xfer_mode == SE_DMA) {
-		if (xfer->tx_buf) {
+		if (xfer->tx_buf && xfer->tx_dma) {
 			reinit_completion(&mas->xfer_done);
 			writel_relaxed(1, mas->base +
 				SE_DMA_TX_FSM_RST);
@@ -1182,7 +1195,7 @@ static void handle_fifo_timeout(struct spi_geni_master *mas,
 			geni_se_tx_dma_unprep(mas->wrapper_dev,
 				xfer->tx_dma, xfer->len);
 		}
-		if (xfer->rx_buf) {
+		if (xfer->rx_buf && xfer->rx_dma) {
 			reinit_completion(&mas->xfer_done);
 			writel_relaxed(1, mas->base +
 				SE_DMA_RX_FSM_RST);
@@ -1219,7 +1232,14 @@ static int spi_geni_transfer_one(struct spi_master *spi,
 
 	if (mas->cur_xfer_mode != GSI_DMA) {
 		reinit_completion(&mas->xfer_done);
-		setup_fifo_xfer(xfer, mas, slv->mode, spi);
+		ret = setup_fifo_xfer(xfer, mas, slv->mode, spi);
+		if (ret) {
+			GENI_SE_ERR(mas->ipc, true, mas->dev,
+				"setup_fifo_xfer failed: %d\n", ret);
+			mas->cur_xfer = NULL;
+			goto err_fifo_geni_transfer_one;
+		}
+
 		timeout = wait_for_completion_timeout(&mas->xfer_done,
 					msecs_to_jiffies(SPI_XFER_TIMEOUT_MS));
 		if (!timeout) {
@@ -1248,7 +1268,13 @@ static int spi_geni_transfer_one(struct spi_master *spi,
 		reinit_completion(&mas->tx_cb);
 		reinit_completion(&mas->rx_cb);
 
-		setup_gsi_xfer(xfer, mas, slv, spi);
+		ret = setup_gsi_xfer(xfer, mas, slv, spi);
+		if (ret) {
+			GENI_SE_ERR(mas->ipc, true, mas->dev,
+				"setup_gsi_xfer failed: %d\n", ret);
+			mas->cur_xfer = NULL;
+			goto err_gsi_geni_transfer_one;
+		}
 		if ((mas->num_xfers >= NUM_SPI_XFER) ||
 			(list_is_last(&xfer->transfer_list,
 					&spi->cur_msg->transfers))) {

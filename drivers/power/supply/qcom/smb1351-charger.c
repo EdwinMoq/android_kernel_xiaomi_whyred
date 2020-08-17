@@ -7,7 +7,7 @@
 #include <linux/i2c.h>
 #include <linux/debugfs.h>
 #include <linux/errno.h>
-#include <linux/extcon.h>
+#include <linux/extcon-provider.h>
 #include <linux/module.h>
 #include <linux/interrupt.h>
 #include <linux/slab.h>
@@ -672,7 +672,7 @@ static int smb1351_usb_suspend(struct smb1351_charger *chip, int reason,
 	pr_debug("reason = %d requested_suspend = %d suspended_status = %d\n",
 						reason, suspend, suspended);
 
-	if (suspend == false)
+	if (!suspend)
 		suspended &= ~reason;
 	else
 		suspended |= reason;
@@ -2540,7 +2540,7 @@ static int set_reg(void *data, u64 val)
 	}
 	return 0;
 }
-DEFINE_SIMPLE_ATTRIBUTE(poke_poke_debug_ops, get_reg, set_reg, "0x%02llx\n");
+DEFINE_DEBUGFS_ATTRIBUTE(poke_poke_debug_ops, get_reg, set_reg, "0x%02llx\n");
 
 static int force_irq_set(void *data, u64 val)
 {
@@ -2549,7 +2549,7 @@ static int force_irq_set(void *data, u64 val)
 	smb1351_chg_stat_handler(chip->client->irq, data);
 	return 0;
 }
-DEFINE_SIMPLE_ATTRIBUTE(force_irq_ops, NULL, force_irq_set, "0x%02llx\n");
+DEFINE_DEBUGFS_ATTRIBUTE(force_irq_ops, NULL, force_irq_set, "0x%02llx\n");
 
 #ifdef DEBUG
 static void dump_regs(struct smb1351_charger *chip)
@@ -3109,7 +3109,6 @@ MODULE_DEVICE_TABLE(i2c, smb1351_charger_id);
 static struct i2c_driver smb1351_charger_driver = {
 	.driver		= {
 		.name		= "smb1351-charger",
-		.owner		= THIS_MODULE,
 		.of_match_table	= smb1351_match_table,
 		.pm		= &smb1351_pm_ops,
 	},

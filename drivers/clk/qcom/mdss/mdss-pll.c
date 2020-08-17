@@ -364,7 +364,7 @@ static int mdss_pll_remove(struct platform_device *pdev)
 
 	pll_res = platform_get_drvdata(pdev);
 	if (!pll_res) {
-		pr_err("Invalid PLL resource data");
+		pr_err("Invalid PLL resource data\n");
 		return 0;
 	}
 

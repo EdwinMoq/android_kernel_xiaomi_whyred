@@ -456,7 +456,7 @@ static int tadc_get_raw_therm(const struct tadc_chan_data *chan_data,
 	rc = tadc_lerp(chan_data->table, chan_data->tablesize, true, mdegc,
 								&rtherm);
 	if (rc < 0) {
-		pr_err("Couldn't interpolate %d\n rc=%d", mdegc, rc);
+		pr_err("Couldn't interpolate %d\n rc=%d\n", mdegc, rc);
 		return rc;
 	}
 
@@ -1024,7 +1024,7 @@ static int tadc_parse_dt(struct tadc_chip *chip)
 	for_each_available_child_of_node(node, child) {
 		rc = of_property_read_u32(child, "reg", &chan_id);
 		if (rc < 0) {
-			pr_err("Couldn't find channel for %s rc=%d",
+			pr_err("Couldn't find channel for %s rc=%d\n",
 							child->name, rc);
 			return rc;
 		}

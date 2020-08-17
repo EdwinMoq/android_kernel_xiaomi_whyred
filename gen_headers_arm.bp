@@ -246,6 +246,7 @@ gen_headers_out_arm = [
     "linux/gsmmux.h",
     "linux/gtp.h",
     "linux/hash_info.h",
+    "linux/hbtp_input.h",
     "linux/hdlc.h",
     "linux/hdlcdrv.h",
     "linux/hdreg.h",
@@ -931,6 +932,7 @@ gen_headers_out_arm = [
     "linux/usb/g_uvc.h",
     "linux/usb/gadgetfs.h",
     "linux/usb/midi.h",
+    "linux/usb/raw_gadget.h",
     "linux/usb/tmc.h",
     "linux/usb/usb_ctrl_qti.h",
     "linux/usb/video.h",
@@ -971,8 +973,6 @@ gen_headers_out_arm = [
     "asm/unistd.h",
 
     // From techpack/*/include/uapi/*/**/*.h
-
-    "linux/hbtp_input.h",
 
 ]
 

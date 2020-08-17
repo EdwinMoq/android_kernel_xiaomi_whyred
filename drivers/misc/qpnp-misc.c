@@ -135,8 +135,8 @@ static bool __misc_irqs_available(struct qpnp_misc_dev *dev)
 	int version_name = get_qpnp_misc_version_name(dev);
 
 	if (version_name == INVALID)
-		return 0;
-	return 1;
+		return false;
+	return true;
 }
 
 int qpnp_misc_read_reg(struct device_node *node, u16 addr, u8 *val)
@@ -253,7 +253,7 @@ static ssize_t twm_enable_show(struct class *c,
 	struct qpnp_misc_dev *mdev = container_of(c,
 			struct qpnp_misc_dev, twm_class);
 
-	return snprintf(buf, PAGE_SIZE, "%d\n", mdev->twm_enable);
+	return scnprintf(buf, PAGE_SIZE, "%d\n", mdev->twm_enable);
 }
 static CLASS_ATTR_RW(twm_enable);
 
@@ -273,7 +273,7 @@ static ssize_t twm_exit_show(struct class *c,
 
 	pr_debug("TWM_EXIT (misc_spare_1) register = 0x%02x\n", val);
 
-	return snprintf(buf, PAGE_SIZE, "%d\n", !!(val & TWM_EXIT_BIT));
+	return scnprintf(buf, PAGE_SIZE, "%d\n", !!(val & TWM_EXIT_BIT));
 }
 static CLASS_ATTR_RO(twm_exit);
 
@@ -465,7 +465,6 @@ static struct platform_driver qpnp_misc_driver = {
 	.shutdown = qpnp_misc_shutdown,
 	.driver	= {
 		.name		= QPNP_MISC_DEV_NAME,
-		.owner		= THIS_MODULE,
 		.of_match_table	= qpnp_misc_match_table,
 	},
 };

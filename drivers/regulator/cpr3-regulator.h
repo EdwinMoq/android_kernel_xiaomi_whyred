@@ -13,6 +13,7 @@
 #include <linux/types.h>
 #include <soc/qcom/apm.h>
 #include <linux/regulator/driver.h>
+#include <linux/regulator/msm-ldo-regulator.h>
 
 struct cpr3_controller;
 struct cpr3_thread;
@@ -336,7 +337,7 @@ struct cpr3_regulator {
 	struct regulator_dev	*rdev;
 	struct regulator	*mem_acc_regulator;
 	struct regulator	*ldo_regulator;
-	bool			ldo_regulator_bypass;
+	enum msm_ldo_supply_mode ldo_regulator_bypass;
 	struct regulator	*ldo_ret_regulator;
 	struct cpr3_corner	*corner;
 	int			corner_count;
@@ -694,6 +695,13 @@ struct cpr3_panic_regs_info {
  * @aging_possible_val:	Optional value that the masked aging_possible_reg
  *			register must have in order for a CPR aging measurement
  *			to be possible.
+ * @aging_gcnt_scaling_factor: The scaling factor used to derive the gate count
+ *			used for aging measurements. This value is divided by
+ *			1000 when used as shown in the below equation:
+ *			      Aging_GCNT = GCNT_REF * scaling_factor / 1000.
+ *			For example, a value of 1500 specifies that the gate
+ *			count (GCNT) used for aging measurement should be 1.5
+ *			times of reference gate count (GCNT_REF).
  * @step_quot_fixed:	Fixed step quotient value used for target quotient
  *			adjustment if use_dynamic_step_quot is not set.
  *			This parameter is only relevant for CPR4 controllers
@@ -727,6 +735,12 @@ struct cpr3_panic_regs_info {
  * @panic_notifier:	Notifier block registered to global panic notifier list.
  * @support_ldo300_vreg: Boolean value which indicates that this CPR controller
  *			manages an underlying LDO regulator of type LDO300.
+ * @reset_step_quot_loop_en: Boolean value which indicates that this CPR
+ *			controller should be configured to reset step_quot on
+ *			each loop_en = 0 transition. This configuration allows
+ *			the CPR controller to first use the default step_quot
+ *			and then later switch to the run-time calibrated
+ *			step_quot.
  *
  * This structure contains both configuration and runtime state data.  The
  * elements cpr_allowed_sw, use_hw_closed_loop, aggr_corner, cpr_enabled,
@@ -813,6 +827,7 @@ struct cpr3_controller {
 	int			aging_sensor_count;
 	u32			aging_possible_mask;
 	u32			aging_possible_val;
+	u32			aging_gcnt_scaling_factor;
 
 	u32			step_quot_fixed;
 	u32			initial_temp_band;
@@ -828,6 +843,7 @@ struct cpr3_controller {
 	struct cpr3_panic_regs_info *panic_regs_info;
 	struct notifier_block	panic_notifier;
 	bool			support_ldo300_vreg;
+	bool			reset_step_quot_loop_en;
 };
 
 /* Used for rounding voltages to the closest physically available set point. */

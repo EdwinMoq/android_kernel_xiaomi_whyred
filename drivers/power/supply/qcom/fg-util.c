@@ -1684,7 +1684,6 @@ err_remove_fs:
 	return -ENOMEM;
 }
 
-
 void fg_stay_awake(struct fg_dev *fg, int awake_reason)
 {
 	spin_lock(&fg->awake_lock);

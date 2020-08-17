@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2012-2020, The Linux Foundation. All rights reserved.
  *
@@ -488,7 +489,7 @@ static void clock_override(struct platform_device *pdev,
 	}
 
 	config_efuse = readl_relaxed(base);
-	devm_iounmap(&pdev->dev, base);
+	//devm_iounmap(&pdev->dev, base);
 
 	bin = (config_efuse >> platform_res->pf_speedbin_tbl->version_shift) &
 		platform_res->pf_speedbin_tbl->version_mask;
@@ -817,12 +818,6 @@ static int msm_vidc_populate_bus(struct device *dev,
 
 	rc = of_property_read_string(dev->of_node, "qcom,mode",
 			&bus->mode);
-	/*if (rc) {
-		rc = 0;
-		dprintk(VIDC_DBG,
-				"'qcom,bus-governor' not found, default to performance governor\n");
-		bus->governor = "performance";
-	} */
 	if (!rc && !strcmp(bus->mode, PERF_GOV))
 		bus->is_prfm_gov_used = true;
 
@@ -1274,7 +1269,7 @@ static int msm_vidc_setup_context_bank(struct context_bank_info *cb,
 		goto remove_cb;
 	}
 
-	cb->domain = iommu_get_domain_for_dev(cb->dev); 
+	cb->domain = iommu_get_domain_for_dev(cb->dev);
 
 	/*
 	 * configure device segment size and segment boundary to ensure

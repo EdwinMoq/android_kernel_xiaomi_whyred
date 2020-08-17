@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-only
 menuconfig MSM_VIDC_3X_GOVERNORS
 	tristate "Clock and bandwidth governors for QTI MSM V4L2 based video driver"
 	depends on MSM_VIDC_3X_V4L2 && PM_DEVFREQ

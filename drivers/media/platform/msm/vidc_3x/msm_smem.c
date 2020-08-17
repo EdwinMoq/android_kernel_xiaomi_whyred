@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2012-2019, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2020, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -190,8 +191,6 @@ void msm_smem_put_dma_buf(void *dma_buf)
 	}
 
 	dma_buf_put((struct dma_buf *)dma_buf);
-
-	return;
 }
 bool msm_smem_compare_buffers(int fd, void *dma_buf)
 {
@@ -503,8 +502,6 @@ fail_shared_mem_alloc:
 
 static int free_dma_mem(struct msm_smem *mem)
 {
-	int rc = 0;
-
 	dprintk(VIDC_DBG,
 		"%s: dma_buf = %pK, device_addr = %x, size = %d, kvaddr = %pK, buffer_type = %#x\n",
 		__func__, mem->dma_buf, mem->device_addr, mem->size,
@@ -532,7 +529,7 @@ static int free_dma_mem(struct msm_smem *mem)
 			-1, mem->size, -1, mem->flags, -1);
 	}
 
-	return rc;
+	return 0;
 }
 
 int msm_smem_alloc(size_t size, u32 align, u32 flags,

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2014-2016, 2018-2019 The Linux Foundation. All rights reserved.
  *
@@ -127,7 +128,7 @@ static inline u32 __readl(void * __iomem addr)
 {
 	u32 value = 0;
 
-	pr_debug("read %pK ", addr);
+	pr_debug("read %pK\n", addr);
 	value = readl_relaxed(addr);
 	pr_debug("-> %08x\n", value);
 
@@ -180,7 +181,7 @@ static inline int __power_on(struct vmem *v)
 
 	rc = regulator_enable(v->vdd);
 	if (rc) {
-		pr_err("Failed to power on gdsc (%d)", rc);
+		pr_err("Failed to power on gdsc (%d)\n", rc);
 		goto unvote_bus;
 	}
 	pr_debug("Enabled regulator vdd\n");
@@ -241,7 +242,7 @@ static inline void __bank_set_state(struct vmem *v, unsigned int bank,
 {
 	uint32_t bank_state = 0;
 	struct {
-		uint32_t (*update)(unsigned int);
+		uint32_t (*update)(unsigned int b);
 		uint32_t mask;
 	} banks[MAX_BANKS] = {
 		{BANK0_STATE_UPDATE, BANK0_STATE_MASK},
@@ -588,7 +589,7 @@ static int vmem_probe(struct platform_device *pdev)
 	struct vmem *v = NULL;
 
 	if (vmem) {
-		pr_err("Only one instance of %s allowed", pdev->name);
+		pr_err("Only one instance of %s allowed\n", pdev->name);
 		return -EEXIST;
 	}
 
@@ -680,7 +681,6 @@ static struct platform_driver vmem_driver = {
 	.remove = vmem_remove,
 	.driver = {
 		.name = "msm_vidc_vmem",
-		.owner = THIS_MODULE,
 		.of_match_table = vmem_of_match,
 	},
 };

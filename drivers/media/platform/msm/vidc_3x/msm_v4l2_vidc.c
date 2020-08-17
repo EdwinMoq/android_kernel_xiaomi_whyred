@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2012-2019, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2020, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -337,7 +338,7 @@ static int msm_vidc_initialize_core(struct platform_device *pdev,
 	return rc;
 }
 
-static ssize_t msm_vidc_link_name_show(struct device *dev,
+static ssize_t link_name_show(struct device *dev,
 		struct device_attribute *attr,
 		char *buf)
 {
@@ -345,18 +346,18 @@ static ssize_t msm_vidc_link_name_show(struct device *dev,
 
 	if (core)
 		if (dev == &core->vdev[MSM_VIDC_DECODER].vdev.dev)
-			return snprintf(buf, PAGE_SIZE, "venus_dec");
+			return scnprintf(buf, PAGE_SIZE, "venus_dec");
 		else if (dev == &core->vdev[MSM_VIDC_ENCODER].vdev.dev)
-			return snprintf(buf, PAGE_SIZE, "venus_enc");
+			return scnprintf(buf, PAGE_SIZE, "venus_enc");
 		else
 			return 0;
 	else
 		return 0;
 }
 
-static DEVICE_ATTR(link_name, 0444, msm_vidc_link_name_show, NULL);
+static DEVICE_ATTR_RO(link_name);
 
-static ssize_t store_pwr_collapse_delay(struct device *dev,
+static ssize_t pwr_collapse_delay_store(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf, size_t count)
 {
@@ -372,24 +373,23 @@ static ssize_t store_pwr_collapse_delay(struct device *dev,
 	return count;
 }
 
-static ssize_t show_pwr_collapse_delay(struct device *dev,
+static ssize_t pwr_collapse_delay_show(struct device *dev,
 		struct device_attribute *attr,
 		char *buf)
 {
-	return snprintf(buf, PAGE_SIZE, "%u\n", msm_vidc_pwr_collapse_delay);
+	return scnprintf(buf, PAGE_SIZE, "%u\n", msm_vidc_pwr_collapse_delay);
 }
 
-static DEVICE_ATTR(pwr_collapse_delay, 0644, show_pwr_collapse_delay,
-		store_pwr_collapse_delay);
+static DEVICE_ATTR_RW(pwr_collapse_delay);
 
-static ssize_t show_thermal_level(struct device *dev,
+static ssize_t thermal_level_show(struct device *dev,
 		struct device_attribute *attr,
 		char *buf)
 {
-	return snprintf(buf, PAGE_SIZE, "%d\n", vidc_driver->thermal_level);
+	return scnprintf(buf, PAGE_SIZE, "%d\n", vidc_driver->thermal_level);
 }
 
-static ssize_t store_thermal_level(struct device *dev,
+static ssize_t thermal_level_store(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf, size_t count)
 {
@@ -412,17 +412,16 @@ static ssize_t store_thermal_level(struct device *dev,
 	return count;
 }
 
-static DEVICE_ATTR(thermal_level, 0644, show_thermal_level,
-		store_thermal_level);
+static DEVICE_ATTR_RW(thermal_level);
 
-static ssize_t show_platform_version(struct device *dev,
+static ssize_t platform_version_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
 	return scnprintf(buf, PAGE_SIZE, "%d",
 			vidc_driver->platform_version);
 }
 
-static ssize_t store_platform_version(struct device *dev,
+static ssize_t platform_version_store(struct device *dev,
 		struct device_attribute *attr, const char *buf,
 		size_t count)
 {
@@ -430,26 +429,21 @@ static ssize_t store_platform_version(struct device *dev,
 	return count;
 }
 
-static DEVICE_ATTR(platform_version, 0444, show_platform_version,
-		store_platform_version);
+static DEVICE_ATTR_RW(platform_version);
 
-static ssize_t show_capability_version(struct device *dev,
+static ssize_t capability_version_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
 	return scnprintf(buf, PAGE_SIZE, "%d",
 			vidc_driver->capability_version);
 }
 
-static ssize_t store_capability_version(struct device *dev,
+static ssize_t capability_version_store(struct device *dev,
 		struct device_attribute *attr, const char *buf,
 		size_t count)
-{
-	dprintk(VIDC_WARN, "store capability version is not allowed\n");
-	return count;
 }
 
-static DEVICE_ATTR(capability_version, 0444, show_capability_version,
-		store_capability_version);
+static DEVICE_ATTR_RW(capability_version);
 
 static struct attribute *msm_vidc_core_attrs[] = {
 		&dev_attr_pwr_collapse_delay.attr,
@@ -493,7 +487,7 @@ static u32 msm_vidc_read_efuse_version(struct platform_device *pdev,
 		ret = (ret & table->version_mask) >>
 			table->version_shift;
 
-		devm_iounmap(&pdev->dev, base);
+//		devm_iounmap(&pdev->dev, base);
 	}
 exit:
 	return ret;
@@ -790,7 +784,6 @@ static struct platform_driver msm_vidc_driver = {
 	.remove = msm_vidc_remove,
 	.driver = {
 		.name = "msm_vidc_v4l2",
-		.owner = THIS_MODULE,
 		.of_match_table = msm_vidc_dt_match,
 		.pm = &msm_vidc_pm_ops,
 	},

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2012-2020, The Linux Foundation. All rights reserved.
  *
@@ -1157,13 +1158,12 @@ static inline int vb2_bufq_init(struct msm_vidc_inst *inst,
 static int setup_event_queue(void *inst,
 				struct video_device *pvdev)
 {
-	int rc = 0;
 	struct msm_vidc_inst *vidc_inst = (struct msm_vidc_inst *)inst;
 
 	v4l2_fh_init(&vidc_inst->event_handler, pvdev);
 	v4l2_fh_add(&vidc_inst->event_handler);
 
-	return rc;
+	return 0;
 }
 
 int msm_vidc_subscribe_event(void *inst,

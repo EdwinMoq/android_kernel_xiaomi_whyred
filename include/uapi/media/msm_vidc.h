@@ -1,3 +1,7 @@
+/* SPDX-License-Identifier: GPL-2.0-only WITH Linux-syscall-note */
+/*
+ * Copyright (c) 2019-2020, The Linux Foundation. All rights reserved.
+ */
 #ifndef __MSM_VIDC_H__
 #define __MSM_VIDC_H__
 
@@ -9,16 +13,25 @@
 #define MSM_VIDC_EXTRADATA_FRAME_QP_ADV 0x1
 
 
-/*static inline unsigned int VENUS_EXTRADATA_SIZE(int width, int height)
+static inline unsigned int VENUS_EXTRADATA_SIZE(int width, int height)
 {
-      (void)height;
-      (void)width;
-    
-      //    * In the future, calculate the size based on the w/h but just
-      //  * hardcode it for now since 16K satisfies all current usecases.
-        
-     return 16 * 1024;
-} */
+	(void)height;
+	(void)width;
+	/*
+	 * In the future, calculate the size based on the w/h but just
+	 * hardcode it for now since 16K satisfies all current usecases.
+	 */
+	return 16 * 1024;
+}
+
+#define V4L2_CID_MPEG_VIDC_VIDEO_IDR_PERIOD   (V4L2_CID_MPEG_MSM_VIDC_BASE+5)
+
+#define V4L2_CID_MPEG_VIDC_VIDEO_STREAM_OUTPUT_MODE \
+		(V4L2_CID_MPEG_MSM_VIDC_BASE + 22)
+enum v4l2_mpeg_vidc_video_decoder_multi_stream {
+	V4L2_CID_MPEG_VIDC_VIDEO_STREAM_OUTPUT_PRIMARY = 0,
+	V4L2_CID_MPEG_VIDC_VIDEO_STREAM_OUTPUT_SECONDARY = 1,
+};
 
 struct msm_vidc_extradata_header {
 	unsigned int size;

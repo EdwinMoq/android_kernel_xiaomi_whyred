@@ -25,6 +25,7 @@
 #include <linux/regmap.h>
 #include <linux/uaccess.h>
 #include <linux/sched.h>
+#include <linux/slab.h>
 #include <soc/qcom/scm.h>
 #include <dt-bindings/clock/qcom,cpu-osm.h>
 
@@ -909,12 +910,12 @@ static int clk_osm_get_lut(struct platform_device *pdev,
 
 	num_rows = total_elems / NUM_FIELDS;
 
-	fmax_temp = devm_kzalloc(&pdev->dev, num_rows * sizeof(unsigned long),
+	fmax_temp = kcalloc(num_rows, sizeof(unsigned long),
 					GFP_KERNEL);
 	if (!fmax_temp)
 		return -ENOMEM;
 
-	array = devm_kzalloc(&pdev->dev, prop_len, GFP_KERNEL);
+	array = kzalloc(prop_len, GFP_KERNEL);
 	if (!array)
 		return -ENOMEM;
 
@@ -974,8 +975,8 @@ static int clk_osm_get_lut(struct platform_device *pdev,
 
 	osm_clks_init[c->cluster_num].num_rate_max = k;
 exit:
-	devm_kfree(&pdev->dev, fmax_temp);
-	devm_kfree(&pdev->dev, array);
+	kfree(fmax_temp);
+	kfree(array);
 	return rc;
 }
 
@@ -985,7 +986,7 @@ static int clk_osm_parse_dt_configs(struct platform_device *pdev)
 	u32 *array;
 	int i, rc = 0;
 
-	array = devm_kzalloc(&pdev->dev, MAX_CLUSTER_CNT * sizeof(u32),
+	array = kcalloc(MAX_CLUSTER_CNT, sizeof(u32),
 			     GFP_KERNEL);
 	if (!array)
 		return -ENOMEM;
@@ -1211,7 +1212,7 @@ static int clk_osm_parse_dt_configs(struct platform_device *pdev)
 	perfcl_clk.pc_fsm_en = pwrcl_clk.pc_fsm_en =
 		of_property_read_bool(of, "qcom,pc-fsm-en");
 
-	devm_kfree(&pdev->dev, array);
+	kfree(array);
 
 	perfcl_clk.secure_init = pwrcl_clk.secure_init =
 		of_property_read_bool(pdev->dev.of_node, "qcom,osm-no-tz");
@@ -1707,7 +1708,7 @@ static int clk_osm_set_cc_policy(struct platform_device *pdev)
 	u32 *array;
 	struct device_node *of = pdev->dev.of_node;
 
-	array = devm_kzalloc(&pdev->dev, MAX_CLUSTER_CNT * sizeof(u32),
+	array = kcalloc(MAX_CLUSTER_CNT, sizeof(u32),
 			     GFP_KERNEL);
 	if (!array)
 		return -ENOMEM;
@@ -1788,7 +1789,7 @@ static int clk_osm_set_cc_policy(struct platform_device *pdev)
 	/* Wait for the writes to complete */
 	clk_osm_mb(&perfcl_clk, OSM_BASE);
 
-	devm_kfree(&pdev->dev, array);
+	kfree(array);
 	return 0;
 }
 
@@ -1818,7 +1819,7 @@ static int clk_osm_set_llm_freq_policy(struct platform_device *pdev)
 	u32 *array;
 	int rc = 0, val, regval;
 
-	array = devm_kzalloc(&pdev->dev, MAX_CLUSTER_CNT * sizeof(u32),
+	array = kcalloc(MAX_CLUSTER_CNT, sizeof(u32),
 			     GFP_KERNEL);
 	if (!array)
 		return -ENOMEM;
@@ -1883,7 +1884,7 @@ static int clk_osm_set_llm_freq_policy(struct platform_device *pdev)
 	/* Wait for the write to complete */
 	clk_osm_mb(&perfcl_clk, OSM_BASE);
 
-	devm_kfree(&pdev->dev, array);
+	kfree(array);
 	return 0;
 }
 
@@ -1893,7 +1894,7 @@ static int clk_osm_set_llm_volt_policy(struct platform_device *pdev)
 	u32 *array;
 	int rc = 0, val, regval;
 
-	array = devm_kzalloc(&pdev->dev, MAX_CLUSTER_CNT * sizeof(u32),
+	array = kcalloc(MAX_CLUSTER_CNT, sizeof(u32),
 			     GFP_KERNEL);
 	if (!array)
 		return -ENOMEM;
@@ -1958,7 +1959,7 @@ static int clk_osm_set_llm_volt_policy(struct platform_device *pdev)
 	/* Wait for the writes to complete */
 	clk_osm_mb(&perfcl_clk, OSM_BASE);
 
-	devm_kfree(&pdev->dev, array);
+	kfree(array);
 	return 0;
 }
 
@@ -3155,12 +3156,12 @@ static int clk_cpu_osm_driver_probe(struct platform_device *pdev)
 	clk_data = devm_kzalloc(&pdev->dev, sizeof(struct clk_onecell_data),
 								GFP_KERNEL);
 	if (!clk_data)
-		goto exit;
+		return -ENOMEM;
 
 	clk_data->clks = devm_kzalloc(&pdev->dev, (num_clks *
 					sizeof(struct clk *)), GFP_KERNEL);
 	if (!clk_data->clks)
-		goto clk_err;
+		return -ENOMEM;
 
 	clk_data->clk_num = num_clks;
 
@@ -3337,7 +3338,7 @@ static int clk_cpu_osm_driver_probe(struct platform_device *pdev)
 								clk_data);
 	if (rc) {
 		dev_err(&pdev->dev, "Unable to register CPU clocks\n");
-			goto provider_err;
+			goto exit;
 	}
 
 	/*
@@ -3420,14 +3421,9 @@ static int clk_cpu_osm_driver_probe(struct platform_device *pdev)
 
 exit2:
 	clk_disable_unprepare(sys_apcsaux_clk_gcc.hw.clk);
-provider_err:
-	if (clk_data)
-		devm_kfree(&pdev->dev, clk_data->clks);
-clk_err:
-	devm_kfree(&pdev->dev, clk_data);
 exit:
 	dev_err(&pdev->dev, "OSM driver failed to initialize, rc=%d\n", rc);
-	panic("Unable to Setup OSM");
+	return rc;
 }
 
 static const struct of_device_id match_table[] = {

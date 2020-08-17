@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2012-2020, The Linux Foundation. All rights reserved.
  *
@@ -1425,7 +1426,24 @@ static struct msm_vidc_ctrl msm_venc_ctrls[] = {
 		.qmenu = iframe_sizes,
 	},
 };
-
+struct msm_vidc_format_constraint enc_pix_format_constraints[] = {
+	{
+		.fourcc = V4L2_PIX_FMT_NV12,
+		.num_planes = 2,
+		.y_max_stride = 128,
+		.y_buffer_alignment = 32,
+		.uv_max_stride = 128,
+		.uv_buffer_alignment = 16,
+	},
+	{
+		.fourcc = V4L2_PIX_FMT_NV21,
+		.num_planes = 2,
+		.y_max_stride = 128,
+		.y_buffer_alignment = 32,
+		.uv_max_stride = 128,
+		.uv_buffer_alignment = 16,
+	},
+};
 #define NUM_CTRLS ARRAY_SIZE(msm_venc_ctrls)
 
 static u32 get_frame_size_nv12(int plane, u32 height, u32 width)
@@ -3300,10 +3318,10 @@ static int try_set_ctrl(struct msm_vidc_inst *inst, struct v4l2_ctrl *ctrl)
 
 		switch (ctrl->val) {
 		case V4L2_MPEG_VIDEO_HEADER_MODE_SEPARATE:
-			enable.enable = 0;
+			enable.enable = false;
 			break;
 		case V4L2_MPEG_VIDEO_HEADER_MODE_JOINED_WITH_I_FRAME:
-			enable.enable = 1;
+			enable.enable = true;
 			break;
 		case V4L2_MPEG_VIDEO_HEADER_MODE_JOINED_WITH_1ST_FRAME:
 		default:
@@ -3359,10 +3377,10 @@ static int try_set_ctrl(struct msm_vidc_inst *inst, struct v4l2_ctrl *ctrl)
 
 		switch (ctrl->val) {
 		case V4L2_MPEG_VIDC_VIDEO_AU_DELIMITER_DISABLED:
-			enable.enable = 0;
+			enable.enable = false;
 			break;
 		case V4L2_MPEG_VIDC_VIDEO_AU_DELIMITER_ENABLED:
-			enable.enable = 1;
+			enable.enable = true;
 			break;
 		default:
 			rc = -ENOTSUPP;
@@ -3428,11 +3446,11 @@ static int try_set_ctrl(struct msm_vidc_inst *inst, struct v4l2_ctrl *ctrl)
 		property_id = HAL_CONFIG_VPE_DEINTERLACE;
 		switch (ctrl->val) {
 		case V4L2_CID_MPEG_VIDC_VIDEO_DEINTERLACE_ENABLED:
-			enable.enable = 1;
+			enable.enable = true;
 			break;
 		case V4L2_CID_MPEG_VIDC_VIDEO_DEINTERLACE_DISABLED:
 		default:
-			enable.enable = 0;
+			enable.enable = false;
 			break;
 		}
 		pdata = &enable;
@@ -3730,9 +3748,9 @@ static int try_set_ctrl(struct msm_vidc_inst *inst, struct v4l2_ctrl *ctrl)
 		property_id = HAL_PARAM_VENC_LOW_LATENCY;
 		if (ctrl->val ==
 			V4L2_CID_MPEG_VIDC_VIDEO_LOWLATENCY_ENABLE)
-			enable.enable = 1;
+			enable.enable = true;
 		else
-			enable.enable = 0;
+			enable.enable = false;
 		pdata = &enable;
 		break;
 	}
@@ -3740,10 +3758,10 @@ static int try_set_ctrl(struct msm_vidc_inst *inst, struct v4l2_ctrl *ctrl)
 		property_id = HAL_PARAM_VENC_H264_TRANSFORM_8x8;
 		switch (ctrl->val) {
 		case V4L2_MPEG_VIDC_VIDEO_H264_TRANSFORM_8x8_ENABLE:
-			enable.enable = 1;
+			enable.enable = true;
 			break;
 		case V4L2_MPEG_VIDC_VIDEO_H264_TRANSFORM_8x8_DISABLE:
-			enable.enable = 0;
+			enable.enable = false;
 			break;
 		default:
 			dprintk(VIDC_ERR,
@@ -4187,6 +4205,7 @@ int msm_venc_s_fmt(struct msm_vidc_inst *inst, struct v4l2_format *f)
 	int rc = 0;
 	int i;
 	struct hfi_device *hdev;
+	struct msm_vidc_format_constraint *fmt_constraint;
 
 	if (!inst || !f) {
 		dprintk(VIDC_ERR,
@@ -4273,7 +4292,29 @@ int msm_venc_s_fmt(struct msm_vidc_inst *inst, struct v4l2_format *f)
 		msm_venc_update_plane_count(inst, OUTPUT_PORT);
 		fmt->num_planes = inst->fmts[OUTPUT_PORT].num_planes;
 
-		msm_comm_set_color_format(inst, HAL_BUFFER_INPUT, fmt->fourcc);
+		rc = msm_comm_set_color_format(inst, HAL_BUFFER_INPUT,
+						fmt->fourcc);
+		if (rc) {
+			dprintk(VIDC_ERR, "%s: set color format (%#x) failed\n",
+				__func__, fmt->fourcc);
+			return rc;
+		}
+
+		fmt_constraint = msm_comm_get_pixel_fmt_constraints(
+					enc_pix_format_constraints,
+					ARRAY_SIZE(enc_pix_format_constraints),
+					fmt->fourcc);
+		if (fmt_constraint) {
+			rc = msm_comm_set_color_format_constraints(inst,
+				msm_comm_get_hal_output_buffer(inst),
+				fmt_constraint);
+			if (rc) {
+				dprintk(VIDC_ERR,
+					"%s: Set constraints for color format %#x failed\n",
+					__func__, fmt->fourcc);
+				return rc;
+			}
+		}
 	} else {
 		dprintk(VIDC_ERR, "%s - Unsupported buf type: %d\n",
 			__func__, f->type);

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2012-2016, 2018-2020, The Linux Foundation. All rights reserved.
  *
@@ -774,8 +775,7 @@ static int __unvote_buses(struct venus_hfi_device *device)
 		if (!bus->is_prfm_gov_used) {
 			freq = __calc_bw(bus, &device->bus_vote);
 			rc = __vote_bandwidth(bus, &freq);
-		}
-		else
+		} else
 			rc = __vote_bandwidth(bus, &zero);
 
 		if (rc)
@@ -822,8 +822,7 @@ no_data_count:
 		if (!bus->is_prfm_gov_used) {
 			freq = __calc_bw(bus, &device->bus_vote);
 			rc = __vote_bandwidth(bus, &freq);
-		}
-		else
+		} else
 			rc = __vote_bandwidth(bus, &zero);
 
 		if (rc)
@@ -1591,7 +1590,7 @@ static int __iface_msgq_read(struct venus_hfi_device *device, void *pkt)
 	}
 
 	q_info = &device->iface_queues[VIDC_IFACEQ_MSGQ_IDX];
-	if (q_info->q_array.align_virtual_addr == 0) {
+	if (q_info->q_array.align_virtual_addr == NULL) {
 		dprintk(VIDC_ERR, "cannot read from shared MSG Q's\n");
 		rc = -ENODATA;
 		goto read_error_null;
@@ -1630,7 +1629,7 @@ static int __iface_dbgq_read(struct venus_hfi_device *device, void *pkt)
 	}
 
 	q_info = &device->iface_queues[VIDC_IFACEQ_DBGQ_IDX];
-	if (q_info->q_array.align_virtual_addr == 0) {
+	if (q_info->q_array.align_virtual_addr == NULL) {
 		dprintk(VIDC_ERR, "cannot read from shared DBG Q's\n");
 		rc = -ENODATA;
 		goto dbg_error_null;
@@ -3579,8 +3578,7 @@ static int __init_regs_and_interrupts(struct venus_hfi_device *device,
 	}
 
 	dprintk(VIDC_DBG, "HAL_DATA will be assigned now\n");
-	hal = (struct hal_data *)
-		kzalloc(sizeof(struct hal_data), GFP_KERNEL);
+	hal = kzalloc(sizeof(struct hal_data), GFP_KERNEL);
 	if (!hal) {
 		dprintk(VIDC_ERR, "Failed to alloc\n");
 		rc = -ENOMEM;
@@ -4041,14 +4039,13 @@ err_reg_enable_failed:
 static int __disable_regulators(struct venus_hfi_device *device)
 {
 	struct regulator_info *rinfo;
-	int rc = 0;
 
 	dprintk(VIDC_DBG, "Disabling regulators\n");
 
 	venus_hfi_for_each_regulator_reverse(device, rinfo)
 		__disable_regulator(rinfo);
 
-	return rc;
+	return 0;
 }
 
 static int __venus_power_on(struct venus_hfi_device *device)
@@ -4482,8 +4479,7 @@ static struct venus_hfi_device *__add_device(u32 device_id,
 
 	dprintk(VIDC_INFO, "entered , device_id: %d\n", device_id);
 
-	hdevice = (struct venus_hfi_device *)
-			kzalloc(sizeof(struct venus_hfi_device), GFP_KERNEL);
+	hdevice = kzalloc(sizeof(struct venus_hfi_device), GFP_KERNEL);
 	if (!hdevice) {
 		dprintk(VIDC_ERR, "failed to allocate new device\n");
 		goto exit;

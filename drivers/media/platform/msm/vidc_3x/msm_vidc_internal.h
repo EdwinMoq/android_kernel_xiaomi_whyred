@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright (c) 2012-2020, The Linux Foundation. All rights reserved.
  *
@@ -339,6 +340,15 @@ int msm_vidc_trigger_ssr(struct msm_vidc_core *core,
 int msm_vidc_check_session_supported(struct msm_vidc_inst *inst);
 int msm_vidc_check_scaling_supported(struct msm_vidc_inst *inst);
 void msm_vidc_queue_v4l2_event(struct msm_vidc_inst *inst, int event_type);
+
+struct msm_vidc_format_constraint {
+	u32 fourcc;
+	u32 num_planes;
+	u32 y_max_stride;
+	u32 y_buffer_alignment;
+	u32 uv_max_stride;
+	u32 uv_buffer_alignment;
+};
 
 struct crop_info {
 	u32 nLeft;

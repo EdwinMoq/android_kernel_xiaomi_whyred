@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2014-2016, 2018 The Linux Foundation. All rights reserved.
  *
@@ -535,8 +536,8 @@ static int msm_dcvs_dec_scale_clocks(struct msm_vidc_inst *inst, bool fbd)
 static bool msm_dcvs_enc_check(struct msm_vidc_inst *inst)
 {
 	int num_mbs_per_frame = 0;
-	long int instance_load = 0;
-	long int dcvs_limit = 0;
+	long instance_load = 0;
+	long dcvs_limit = 0;
 	bool dcvs_check_passed = false, is_codec_supported  = false;
 	struct msm_vidc_platform_resources *res = NULL;
 
@@ -561,7 +562,7 @@ static bool msm_dcvs_enc_check(struct msm_vidc_inst *inst)
 	num_mbs_per_frame = msm_dcvs_get_mbs_per_frame(inst);
 	instance_load = msm_comm_get_inst_load(inst, LOAD_CALC_NO_QUIRKS);
 	dcvs_limit =
-		(long int)res->dcvs_limit[inst->session_type].min_mbpf *
+		(long)res->dcvs_limit[inst->session_type].min_mbpf *
 		res->dcvs_limit[inst->session_type].fps;
 
 	if (msm_vidc_enc_dcvs_mode && is_codec_supported &&
@@ -577,8 +578,8 @@ static bool msm_dcvs_enc_check(struct msm_vidc_inst *inst)
 static bool msm_dcvs_check_supported(struct msm_vidc_inst *inst)
 {
 	int num_mbs_per_frame = 0, instance_count = 0;
-	long int instance_load = 0;
-	long int dcvs_limit = 0;
+	long instance_load = 0;
+	long dcvs_limit = 0;
 	struct msm_vidc_inst *temp = NULL;
 	struct msm_vidc_core *core;
 	struct hal_buffer_requirements *output_buf_req;
@@ -610,7 +611,7 @@ static bool msm_dcvs_check_supported(struct msm_vidc_inst *inst)
 		output_buf_req = get_buff_req_buffer(inst,
 			msm_comm_get_hal_output_buffer(inst));
 		dcvs_limit =
-			(long int)res->dcvs_limit[inst->session_type].min_mbpf *
+			(long)res->dcvs_limit[inst->session_type].min_mbpf *
 			res->dcvs_limit[inst->session_type].fps;
 		is_codec_supported =
 			msm_dcvs_check_codec_supported(

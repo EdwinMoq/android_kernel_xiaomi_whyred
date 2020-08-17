@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2015-2016, 2018 The Linux Foundation. All rights reserved.
  *
@@ -355,7 +356,6 @@ static struct platform_driver msm_vidc_bus_table_driver = {
 	.remove = msm_vidc_bus_table_remove,
 	.driver = {
 		.name = "msm_vidc_bus_table_governor",
-		.owner = THIS_MODULE,
 		.of_match_table = device_id,
 	},
 };

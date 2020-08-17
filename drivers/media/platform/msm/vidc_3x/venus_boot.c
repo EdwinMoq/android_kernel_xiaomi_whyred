@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2014-2016, 2018-2020 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014-2016, 2018, 2020 The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -148,18 +149,18 @@ static void venus_clock_disable_unprepare(void)
 }
 
 static int venus_setup_cb(struct device *dev,
-                                u32 size)
+				u32 size)
 {
-        venus_data->domain = iommu_get_domain_for_dev(dev);
-        if (IS_ERR_OR_NULL(venus_data->domain)) {
-                dprintk(VIDC_ERR, "%s: failed to create mapping for %s\n",
-                __func__, dev_name(dev));
-                return -ENODEV;
-        }
-        dprintk(VIDC_DBG,
-                "%s Attached device %pK and created domain %pK for %s\n",
-                __func__, dev, venus_data->domain, dev_name(dev));
-        return 0;
+	venus_data->domain = iommu_get_domain_for_dev(dev);
+	if (IS_ERR_OR_NULL(venus_data->domain)) {
+		dprintk(VIDC_ERR, "%s: failed to create mapping for %s\n",
+		__func__, dev_name(dev));
+		return -ENODEV;
+	}
+	dprintk(VIDC_DBG,
+		"%s Attached device %pK and created domain %pK for %s\n",
+		__func__, dev, venus_data->domain, dev_name(dev));
+	return 0;
 }
 
 static int pil_venus_mem_setup(size_t size)
@@ -168,14 +169,14 @@ static int pil_venus_mem_setup(size_t size)
 
 	if (!venus_data->domain) {
 		size = round_up(size, SZ_4K);
-                rc = venus_setup_cb(venus_data->iommu_ctx_bank_dev, size);
-                if (rc) {
-                        dprintk(VIDC_ERR,
-                                "%s: Failed to setup context bank for venus : %s\n",
-                                __func__,
-                                dev_name(venus_data->iommu_ctx_bank_dev));
-                        return rc;
-                }
+		rc = venus_setup_cb(venus_data->iommu_ctx_bank_dev, size);
+		if (rc) {
+			dprintk(VIDC_ERR,
+			"%s: Failed to setup context bank for venus : %s\n",
+			 __func__,
+			dev_name(venus_data->iommu_ctx_bank_dev));
+			return rc;
+		}
 		venus_data->fw_sz = size;
 	}
 
@@ -202,7 +203,7 @@ static int pil_venus_auth_and_reset(void)
 		ver = readl_relaxed(reg_base + VIDC_WRAPPER_HW_VERSION);
 		venus_data->hw_ver_minor = (ver & 0x0FFF0000) >> 16;
 		venus_data->hw_ver_major = (ver & 0xF0000000) >> 28;
-		venus_data->hw_ver_checked = 1;
+		venus_data->hw_ver_checked = true;
 	}
 
 	if (iommu_present) {
@@ -294,7 +295,7 @@ static int pil_venus_auth_and_reset(void)
 	/* Bring Arm9 out of reset */
 	writel_relaxed(0, reg_base + VENUS_WRAPPER_SW_RESET);
 
-	venus_data->is_booted = 1;
+	venus_data->is_booted = true;
 	return 0;
 
 err:
@@ -347,7 +348,7 @@ static int pil_venus_shutdown(void)
 	if (rc)
 		dprintk(VIDC_ERR, "Port halt timeout\n");
 
-	venus_data->is_booted = 0;
+	venus_data->is_booted = false;
 
 	return 0;
 }

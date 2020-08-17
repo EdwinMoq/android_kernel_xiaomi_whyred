@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Copyright (c) 2013-2019, The Linux Foundation. All rights reserved. */
+/* Copyright (c) 2013-2020, The Linux Foundation. All rights reserved. */
 
 #define pr_fmt(fmt)	"%s: " fmt, __func__
 
@@ -410,7 +410,7 @@ int mdss_pll_util_resource_parse(struct platform_device *pdev,
 
 	rc = mdss_pll_util_parse_dt_clock(pdev, pll_res);
 	if (rc) {
-		pr_err("clock name parsing failed rc=%d", rc);
+		pr_err("clock name parsing failed rc=%d\n", rc);
 		goto clk_err;
 	}
 

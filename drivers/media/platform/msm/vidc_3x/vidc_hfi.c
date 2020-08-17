@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2012-2019, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2020, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -22,8 +23,7 @@ struct hfi_device *vidc_hfi_initialize(enum msm_vidc_hfi_type hfi_type,
 	struct hfi_device *hdev = NULL;
 	int rc = 0;
 
-	hdev = (struct hfi_device *)
-			kzalloc(sizeof(struct hfi_device), GFP_KERNEL);
+	hdev = kzalloc(sizeof(struct hfi_device), GFP_KERNEL);
 	if (!hdev) {
 		dprintk(VIDC_ERR, "%s: failed to allocate hdev\n", __func__);
 		return NULL;

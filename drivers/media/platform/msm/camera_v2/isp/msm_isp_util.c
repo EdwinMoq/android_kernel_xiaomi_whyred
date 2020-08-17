@@ -13,8 +13,6 @@
 #include "msm_camera_io_util.h"
 #include "cam_smmu_api.h"
 #include "msm_isp48.h"
-//#define CREATE_TRACE_POINTS
-#include "trace/events/msm_cam.h"
 
 #ifndef UINT16_MAX
 #define UINT16_MAX             (65535U)

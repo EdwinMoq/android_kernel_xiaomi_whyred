@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2012-2020, The Linux Foundation. All rights reserved.
  *
@@ -2027,20 +2028,23 @@ static int try_get_ctrl(struct msm_vidc_inst *inst, struct v4l2_ctrl *ctrl)
 			rc = msm_comm_try_get_prop(inst,
 					HAL_CONFIG_VDEC_ENTROPY, &hprop);
 			if (rc) {
-				dprintk(VIDC_ERR, "%s: Failed getting entropy type: %d",
+				dprintk(VIDC_ERR,
+					"%s: Failed getting entropy type: %d",
 					__func__, rc);
 				break;
 			}
 			switch (hprop.h264_entropy) {
-				case HAL_H264_ENTROPY_CAVLC:
-					ctrl->val = V4L2_MPEG_VIDEO_H264_ENTROPY_MODE_CAVLC;
-					break;
-				case HAL_H264_ENTROPY_CABAC:
-					ctrl->val = V4L2_MPEG_VIDEO_H264_ENTROPY_MODE_CABAC;
-					break;
-				case HAL_UNUSED_ENTROPY:
-					rc = -ENOTSUPP;
-					break;
+			case HAL_H264_ENTROPY_CAVLC:
+				ctrl->val =
+					V4L2_MPEG_VIDEO_H264_ENTROPY_MODE_CAVLC;
+				break;
+			case HAL_H264_ENTROPY_CABAC:
+				ctrl->val =
+					V4L2_MPEG_VIDEO_H264_ENTROPY_MODE_CABAC;
+				break;
+			case HAL_UNUSED_ENTROPY:
+				rc = -ENOTSUPP;
+				break;
 			}
 		}
 		break;

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Copyright (c) 2016-2017, The Linux Foundation. All rights reserved. */
+/* Copyright (c) 2016-2017, 2020, The Linux Foundation. All rights reserved. */
 
 #define pr_fmt(fmt) "%s: " fmt, __func__
 
@@ -451,7 +451,7 @@ static int hdmi_8998_pll_set_clk_rate(struct clk *c, unsigned long rate)
 
 	rc = hdmi_8998_config_phy(rate, &cfg);
 	if (rc) {
-		pr_err("rate calculation failed\n, rc=%d", rc);
+		pr_err("rate calculation failed\n, rc=%d\n", rc);
 		return rc;
 	}
 

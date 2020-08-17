@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright (c) 2012-2015, 2018-2020 The Linux Foundation. All rights reserved.
  *
@@ -153,7 +154,7 @@ struct vidc_iface_q_info {
 /* TODO: the __from parameter technically not required since we can figure it
  * out with some pointer magic (i.e. __thing - __thing##_tbl[0]).  If this macro
  * sees extensive use, probably worth cleaning it up but for now omitting it
- * since it introduces unneccessary complexity.
+ * since it introduces unnecessary complexity.
  */
 #define venus_hfi_for_each_thing_continue(__device, __thing, __thingy, __from) \
 	for (__thing = &(__device)->res->\

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2015, 2017-2020, The Linux Foundation. All rights reserved.
  *
@@ -16,9 +17,6 @@
 #include "../msm_vidc_internal.h"
 #include "../msm_vidc_debug.h"
 #include "../vidc_hfi_api.h"
-
-static bool debug;
-module_param(debug, bool, 0644);
 
 enum vidc_bus_type {
 	PERF,
@@ -175,7 +173,6 @@ static struct lut const *__lut(int width, int height)
 	int frame_size = height * width, c = 0;
 
 	do {
-		if (LUT[c].frame_size >= frame_size)
 		if (LUT[c].frame_size >= frame_size)
 			return &LUT[c];
 	} while (++c < ARRAY_SIZE(LUT));
@@ -493,7 +490,7 @@ static unsigned long __calculate_decoder(struct vidc_bus_vote_data *d,
 	ddr.total = fp_mult(ddr.total, qsmmu_bw_overhead_factor);
 
 	/* Dump all the variables for easier debugging */
-	if (debug) {
+	if (msm_vidc_debug & VIDC_DBG) {
 		struct dump dump[] = {
 		{"DECODER PARAMETERS", "", DUMP_HEADER_MAGIC},
 		{"content", "%d", scenario},
@@ -890,7 +887,7 @@ static unsigned long __calculate_encoder(struct vidc_bus_vote_data *d,
 	if (width * height >= 3840 * 2160 && low_power)
 		vmem.total = FP_INT(NOMINAL_BW_MBPS);
 
-	if (debug) {
+	if (msm_vidc_debug & VIDC_DBG) {
 		struct dump dump[] = {
 		{"ENCODER PARAMETERS", "", DUMP_HEADER_MAGIC},
 		{"scenario", "%d", scenario},

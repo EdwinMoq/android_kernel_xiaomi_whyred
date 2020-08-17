@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2012-2019, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2020, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -29,7 +30,7 @@ bool msm_vidc_enc_dcvs_mode = true;
 bool msm_vidc_sys_idle_indicator = true;
 int msm_vidc_firmware_unload_delay = 15000;
 bool msm_vidc_thermal_mitigation_disabled = true;
-bool msm_vidc_bitrate_clock_scaling = 1;
+bool msm_vidc_bitrate_clock_scaling = true;
 bool msm_vidc_debug_timeout = true;
 
 #define MAX_DBG_BUF_SIZE 4096
@@ -42,12 +43,6 @@ struct core_inst_pair {
 	struct msm_vidc_core *core;
 	struct msm_vidc_inst *inst;
 };
-
-static int core_info_open(struct inode *inode, struct file *file)
-{
-	file->private_data = inode->i_private;
-	return 0;
-}
 
 static u32 write_str(char *buffer,
 		size_t size, const char *fmt, ...)
@@ -119,15 +114,9 @@ err_fw_info:
 }
 
 static const struct file_operations core_info_fops = {
-	.open = core_info_open,
+	.open = simple_open,
 	.read = core_info_read,
 };
-
-static int trigger_ssr_open(struct inode *inode, struct file *file)
-{
-	file->private_data = inode->i_private;
-	return 0;
-}
 
 static ssize_t trigger_ssr_write(struct file *filp, const char __user *buf,
 		size_t count, loff_t *ppos)
@@ -163,7 +152,7 @@ exit:
 }
 
 static const struct file_operations ssr_fops = {
-	.open = trigger_ssr_open,
+	.open = simple_open,
 	.write = trigger_ssr_write,
 };
 
