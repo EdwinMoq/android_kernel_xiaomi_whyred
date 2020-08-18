@@ -441,6 +441,9 @@ static ssize_t capability_version_show(struct device *dev,
 static ssize_t capability_version_store(struct device *dev,
 		struct device_attribute *attr, const char *buf,
 		size_t count)
+{
+	dprintk(VIDC_WARN, "store capability version is not allowed\n");
+	return count;
 }
 
 static DEVICE_ATTR_RW(capability_version);
