@@ -590,6 +590,7 @@ static int qpnp_rtc_probe(struct platform_device *pdev)
 
 	dev_set_drvdata(&pdev->dev, rtc_dd);
 
+	device_init_wakeup(&pdev->dev, 1);
 	/* Register the RTC device */
 	rtc_dd->rtc = rtc_device_register("qpnp_rtc", &pdev->dev,
 					  rtc_ops, THIS_MODULE);
@@ -609,7 +610,6 @@ static int qpnp_rtc_probe(struct platform_device *pdev)
 		goto fail_req_irq;
 	}
 
-	device_init_wakeup(&pdev->dev, 1);
 	enable_irq_wake(rtc_dd->rtc_alarm_irq);
 
 	dev_dbg(&pdev->dev, "Probe success !!\n");
