@@ -14,6 +14,7 @@
 #include <linux/of_device.h>
 #include <linux/regmap.h>
 #include <linux/reset-controller.h>
+#include <linux/slab.h>
 #include <dt-bindings/clock/qcom,gpu-sdm660.h>
 
 #include "clk-alpha-pll.h"
@@ -24,7 +25,6 @@
 #include "clk-branch.h"
 #include "vdd-level-660.h"
 
-#define F(f, s, h, m, n) { (f), (s), (2 * (h) - 1), (m), (n) }
 #define F_GFX(f, s, h, m, n, sf) { (f), (s), (2 * (h) - 1), (m), (n), (sf) }
 
 static DEFINE_VDD_REGULATORS(vdd_dig, VDD_DIG_NUM, 1, vdd_corner);
@@ -88,11 +88,18 @@ static const struct alpha_pll_config gpu_pll0_config = {
 	.main_output_mask = 0x1,
 };
 
+static struct pll_vco_data pll_data[] = {
+	/* Frequency  post-div */
+	{ 640000000,  0x1 },
+};
+
 static struct clk_alpha_pll gpu_pll0_pll_out_main = {
 	.offset = 0x0,
 	.regs = clk_alpha_pll_regs[CLK_ALPHA_PLL_TYPE_DEFAULT],
 	.vco_table = gpu_vco,
 	.num_vco = ARRAY_SIZE(gpu_vco),
+	.vco_data = pll_data,
+	.num_vco_data = ARRAY_SIZE(pll_data),
 	.clkr = {
 		.hw.init = &(struct clk_init_data){
 			.name = "gpu_pll0_pll_out_main",
@@ -109,6 +116,8 @@ static struct clk_alpha_pll gpu_pll1_pll_out_main = {
 	.regs = clk_alpha_pll_regs[CLK_ALPHA_PLL_TYPE_DEFAULT],
 	.vco_table = gpu_vco,
 	.num_vco = ARRAY_SIZE(gpu_vco),
+	.vco_data = pll_data,
+	.num_vco_data = ARRAY_SIZE(pll_data),
 	.clkr = {
 		.hw.init = &(struct clk_init_data){
 			.name = "gpu_pll1_pll_out_main",
@@ -367,7 +376,7 @@ static int of_get_fmax_vdd_class(struct platform_device *pdev,
 	if (!gpu_clks_init[index].rate_max)
 		return -ENOMEM;
 
-	array = devm_kzalloc(&pdev->dev, prop_len * sizeof(u32) * num,
+	array = kzalloc(prop_len * sizeof(u32) * num,
 				GFP_KERNEL);
 	if (!array)
 		return -ENOMEM;
@@ -381,7 +390,7 @@ static int of_get_fmax_vdd_class(struct platform_device *pdev,
 		}
 	}
 
-	devm_kfree(&pdev->dev, array);
+	kfree(array);
 	vdd->num_levels = prop_len;
 	vdd->cur_level = prop_len;
 	gpu_clks_init[index].num_rate_max = prop_len;
@@ -391,11 +400,11 @@ static int of_get_fmax_vdd_class(struct platform_device *pdev,
 
 static int gpucc_660_probe(struct platform_device *pdev)
 {
-	int ret = 0;
 	struct regmap *regmap;
 	struct resource *res;
 	void __iomem *base;
 	bool is_630 = false;
+	int ret;
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (res == NULL) {
@@ -511,8 +520,8 @@ MODULE_DEVICE_TABLE(of, gpucc_rbcpr_660_match_table);
 
 static int gpu_660_probe(struct platform_device *pdev)
 {
-	int ret = 0;
 	struct regmap *regmap;
+	int ret;
 
 	regmap = qcom_cc_map(pdev, &gpu_660_desc);
 	if (IS_ERR(regmap))

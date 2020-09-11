@@ -28,9 +28,6 @@
 #include "reset.h"
 #include "vdd-level-660.h"
 
-#define F(f, s, h, m, n)	{ (f), (s), (2 * (h) - 1), (m), (n) }
-#define BM(msb, lsb)	(((((uint32_t)-1) << (31-msb)) >> (31-msb+lsb)) << lsb)
-
 static DEFINE_VDD_REGULATORS(vdd_dig, VDD_DIG_NUM, 1, vdd_corner);
 static DEFINE_VDD_REGULATORS(vdd_dig_ao, VDD_DIG_NUM, 1, vdd_corner);
 
@@ -43,20 +40,6 @@ enum {
 	P_PLL0_EARLY_DIV_CLK_SRC,
 	P_PLL1_EARLY_DIV_CLK_SRC,
 	P_SLEEP_CLK,
-};
-
-static const u8 clk_alpha_pll_regs_offset[][PLL_OFF_MAX_REGS] = {
-	[CLK_ALPHA_PLL_TYPE_DEFAULT] =  {
-		[PLL_OFF_L_VAL] = 0x04,
-		[PLL_OFF_ALPHA_VAL] = 0x08,
-		[PLL_OFF_ALPHA_VAL_U] = 0x0c,
-		[PLL_OFF_TEST_CTL] = 0x10,
-		[PLL_OFF_TEST_CTL_U] = 0x14,
-		[PLL_OFF_USER_CTL] = 0x18,
-		[PLL_OFF_USER_CTL_U] = 0x1C,
-		[PLL_OFF_CONFIG_CTL] = 0x20,
-		[PLL_OFF_STATUS] = 0x24,
-	},
 };
 
 static const struct parent_map gcc_parent_map_0[] = {
@@ -211,7 +194,7 @@ static struct clk_alpha_pll gpll0_out_main = {
 	.soft_vote = &soft_vote_gpll0,
 	.soft_vote_mask = PLL_SOFT_VOTE_PRIMARY,
 	.flags = SUPPORTS_FSM_VOTE,
-	.regs = clk_alpha_pll_regs_offset[CLK_ALPHA_PLL_TYPE_DEFAULT],
+	.regs = clk_alpha_pll_regs[CLK_ALPHA_PLL_TYPE_DEFAULT],
 	.clkr = {
 		.enable_reg = 0x52000,
 		.enable_mask = BIT(0),
@@ -229,7 +212,7 @@ static struct clk_alpha_pll gpll0_ao_out_main = {
 	.soft_vote = &soft_vote_gpll0,
 	.soft_vote_mask = PLL_SOFT_VOTE_CPU,
 	.flags = SUPPORTS_FSM_VOTE,
-	.regs = clk_alpha_pll_regs_offset[CLK_ALPHA_PLL_TYPE_DEFAULT],
+	.regs = clk_alpha_pll_regs[CLK_ALPHA_PLL_TYPE_DEFAULT],
 	.clkr = {
 		.enable_reg = 0x52000,
 		.enable_mask = BIT(0),
@@ -255,7 +238,7 @@ static struct clk_fixed_factor gpll0_out_early_div = {
 
 static struct clk_alpha_pll gpll1_out_main = {
 	.offset = 0x1000,
-	.regs = clk_alpha_pll_regs_offset[CLK_ALPHA_PLL_TYPE_DEFAULT],
+	.regs = clk_alpha_pll_regs[CLK_ALPHA_PLL_TYPE_DEFAULT],
 	.clkr = {
 		.enable_reg = 0x52000,
 		.enable_mask = BIT(1),
@@ -281,7 +264,7 @@ static struct clk_fixed_factor gpll1_out_early_div = {
 
 static struct clk_alpha_pll gpll4_out_main = {
 	.offset = 0x77000,
-	.regs = clk_alpha_pll_regs_offset[CLK_ALPHA_PLL_TYPE_DEFAULT],
+	.regs = clk_alpha_pll_regs[CLK_ALPHA_PLL_TYPE_DEFAULT],
 	.clkr = {
 		.enable_reg = 0x52000,
 		.enable_mask = BIT(4),
@@ -2803,24 +2786,248 @@ module_exit(gcc_660_exit);
 
 /* Debug Mux for measure */
 static struct measure_clk_data debug_mux_priv = {
-	.xo_div4_cbcr = 0x43008,
 	.ctl_reg = 0x62004,
 	.status_reg = 0x62008,
+	.xo_div4_cbcr = 0x43008,
+};
+
+static const char *const gcc_debug_mux_parent_names[] = {
+	"measure_only_snoc_clk",
+	"measure_only_cnoc_clk",
+	"measure_only_cnoc_periph_clk",
+	"measure_only_bimc_clk",
+	"measure_only_ce1_clk",
+	"measure_only_ipa_clk",
+	"gcc_aggre2_ufs_axi_clk",
+	"gcc_aggre2_usb3_axi_clk",
+	"gcc_bimc_gfx_clk",
+	"gcc_bimc_hmss_axi_clk",
+	"gcc_bimc_mss_q6_axi_clk",
+	"gcc_blsp1_ahb_clk",
+	"gcc_blsp1_qup1_i2c_apps_clk",
+	"gcc_blsp1_qup1_spi_apps_clk",
+	"gcc_blsp1_qup2_i2c_apps_clk",
+	"gcc_blsp1_qup2_spi_apps_clk",
+	"gcc_blsp1_qup3_i2c_apps_clk",
+	"gcc_blsp1_qup3_spi_apps_clk",
+	"gcc_blsp1_qup4_i2c_apps_clk",
+	"gcc_blsp1_qup4_spi_apps_clk",
+	"gcc_blsp1_uart1_apps_clk",
+	"gcc_blsp1_uart2_apps_clk",
+	"gcc_blsp2_ahb_clk",
+	"gcc_blsp2_qup1_i2c_apps_clk",
+	"gcc_blsp2_qup1_spi_apps_clk",
+	"gcc_blsp2_qup2_i2c_apps_clk",
+	"gcc_blsp2_qup2_spi_apps_clk",
+	"gcc_blsp2_qup3_i2c_apps_clk",
+	"gcc_blsp2_qup3_spi_apps_clk",
+	"gcc_blsp2_qup4_i2c_apps_clk",
+	"gcc_blsp2_qup4_spi_apps_clk",
+	"gcc_blsp2_uart1_apps_clk",
+	"gcc_blsp2_uart2_apps_clk",
+	"gcc_boot_rom_ahb_clk",
+	"gcc_ce1_ahb_m_clk",
+	"gcc_ce1_axi_m_clk",
+	"gcc_cfg_noc_usb2_axi_clk",
+	"gcc_cfg_noc_usb3_axi_clk",
+	"gcc_dcc_ahb_clk",
+	"gcc_gp1_clk",
+	"gcc_gp2_clk",
+	"gcc_gp3_clk",
+	"gcc_gpu_bimc_gfx_clk",
+	"gcc_gpu_cfg_ahb_clk",
+	"gcc_hmss_dvm_bus_clk",
+	"gcc_hmss_rbcpr_clk",
+	"gcc_mmss_noc_cfg_ahb_clk",
+	"gcc_mmss_sys_noc_axi_clk",
+	"gcc_mss_cfg_ahb_clk",
+	"gcc_mss_mnoc_bimc_axi_clk",
+	"gcc_mss_q6_bimc_axi_clk",
+	"gcc_mss_snoc_axi_clk",
+	"gcc_pdm2_clk",
+	"gcc_pdm_ahb_clk",
+	"gcc_prng_ahb_clk",
+	"gcc_qspi_ahb_clk",
+	"gcc_qspi_ser_clk",
+	"gcc_sdcc1_ahb_clk",
+	"gcc_sdcc1_apps_clk",
+	"gcc_sdcc1_ice_core_clk",
+	"gcc_sdcc2_ahb_clk",
+	"gcc_sdcc2_apps_clk",
+	"gcc_ufs_ahb_clk",
+	"gcc_ufs_axi_clk",
+	"gcc_ufs_ice_core_clk",
+	"gcc_ufs_phy_aux_clk",
+	"gcc_ufs_rx_symbol_0_clk",
+	"gcc_ufs_rx_symbol_1_clk",
+	"gcc_ufs_tx_symbol_0_clk",
+	"gcc_ufs_unipro_core_clk",
+	"gcc_usb20_master_clk",
+	"gcc_usb20_mock_utmi_clk",
+	"gcc_usb20_sleep_clk",
+	"gcc_usb30_master_clk",
+	"gcc_usb30_mock_utmi_clk",
+	"gcc_usb30_sleep_clk",
+	"gcc_usb3_phy_aux_clk",
+	"gcc_usb3_phy_pipe_clk",
+	"gcc_usb_phy_cfg_ahb2phy_clk",
+	"gpu_cc_debug_mux",
+	"mmss_cc_debug_mux",
+	"cpu_cc_debug_mux",
+};
+
+static int gcc_debug_mux_sels[] = {
+	0x0,		/* measure_only_snoc_clk */
+	0xE,		/* measure_only_cnoc_clk */
+	0x198,		/* measure_only_cnoc_periph_clk */
+	0x19D,		/* measure_only_bimc_clk */
+	0x97,		/* measure_only_ce1_clk */
+	0x11b,		/* measure_only_ipa_clk */
+	0x10B,		/* gcc_aggre2_ufs_axi_clk */
+	0x10A,		/* gcc_aggre2_usb3_axi_clk */
+	0xAC,		/* gcc_bimc_gfx_clk */
+	0xBB,		/* gcc_bimc_hmss_axi_clk */
+	0xA3,		/* gcc_bimc_mss_q6_axi_clk */
+	0x4A,		/* gcc_blsp1_ahb_clk */
+	0x4D,		/* gcc_blsp1_qup1_i2c_apps_clk */
+	0x4C,		/* gcc_blsp1_qup1_spi_apps_clk */
+	0x51,		/* gcc_blsp1_qup2_i2c_apps_clk */
+	0x50,		/* gcc_blsp1_qup2_spi_apps_clk */
+	0x55,		/* gcc_blsp1_qup3_i2c_apps_clk */
+	0x54,		/* gcc_blsp1_qup3_spi_apps_clk */
+	0x59,		/* gcc_blsp1_qup4_i2c_apps_clk */
+	0x58,		/* gcc_blsp1_qup4_spi_apps_clk */
+	0x4E,		/* gcc_blsp1_uart1_apps_clk */
+	0x52,		/* gcc_blsp1_uart2_apps_clk */
+	0x5E,		/* gcc_blsp2_ahb_clk */
+	0x61,		/* gcc_blsp2_qup1_i2c_apps_clk */
+	0x60,		/* gcc_blsp2_qup1_spi_apps_clk */
+	0x65,		/* gcc_blsp2_qup2_i2c_apps_clk */
+	0x64,		/* gcc_blsp2_qup2_spi_apps_clk */
+	0x69,		/* gcc_blsp2_qup3_i2c_apps_clk */
+	0x68,		/* gcc_blsp2_qup3_spi_apps_clk */
+	0x6D,		/* gcc_blsp2_qup4_i2c_apps_clk */
+	0x6C,		/* gcc_blsp2_qup4_spi_apps_clk */
+	0x62,		/* gcc_blsp2_uart1_apps_clk */
+	0x66,		/* gcc_blsp2_uart2_apps_clk */
+	0x7A,		/* gcc_boot_rom_ahb_clk */
+	0x99,		/* gcc_ce1_ahb_m_clk */
+	0x98,		/* gcc_ce1_axi_m_clk */
+	0x168,		/* gcc_cfg_noc_usb2_axi_clk */
+	0x14,		/* gcc_cfg_noc_usb3_axi_clk */
+	0x119,		/* gcc_dcc_ahb_clk */
+	0xDF,		/* gcc_gp1_clk */
+	0xE0,		/* gcc_gp2_clk */
+	0xE1,		/* gcc_gp3_clk */
+	0x13F,		/* gcc_gpu_bimc_gfx_clk */
+	0x13B,		/* gcc_gpu_cfg_ahb_clk */
+	0xBF,		/* gcc_hmss_dvm_bus_clk */
+	0xBC,		/* gcc_hmss_rbcpr_clk */
+	0x20,		/* gcc_mmss_noc_cfg_ahb_clk */
+	0x1F,		/* gcc_mmss_sys_noc_axi_clk */
+	0x11F,		/* gcc_mss_cfg_ahb_clk */
+	0x120,		/* gcc_mss_mnoc_bimc_axi_clk */
+	0x124,		/* gcc_mss_q6_bimc_axi_clk */
+	0x123,		/* gcc_mss_snoc_axi_clk */
+	0x74,		/* gcc_pdm2_clk */
+	0x72,		/* gcc_pdm_ahb_clk */
+	0x75,		/* gcc_prng_ahb_clk */
+	0x172,		/* gcc_qspi_ahb_clk */
+	0x173,		/* gcc_qspi_ser_clk */
+	0x16E,		/* gcc_sdcc1_ahb_clk */
+	0x16D,		/* gcc_sdcc1_apps_clk */
+	0x16F,		/* gcc_sdcc1_ice_core_clk */
+	0x47,		/* gcc_sdcc2_ahb_clk */
+	0x46,		/* gcc_sdcc2_apps_clk */
+	0xEB,		/* gcc_ufs_ahb_clk */
+	0xEA,		/* gcc_ufs_axi_clk */
+	0xF1,		/* gcc_ufs_ice_core_clk */
+	0xF2,		/* gcc_ufs_phy_aux_clk */
+	0xED,		/* gcc_ufs_rx_symbol_0_clk */
+	0x162,		/* gcc_ufs_rx_symbol_1_clk */
+	0xEC,		/* gcc_ufs_tx_symbol_0_clk */
+	0xF0,		/* gcc_ufs_unipro_core_clk */
+	0x169,		/* gcc_usb20_master_clk */
+	0x16B,		/* gcc_usb20_mock_utmi_clk */
+	0x16A,		/* gcc_usb20_sleep_clk */
+	0x3C,		/* gcc_usb30_master_clk */
+	0x3E,		/* gcc_usb30_mock_utmi_clk */
+	0x3D,		/* gcc_usb30_sleep_clk */
+	0x3F,		/* gcc_usb3_phy_aux_clk */
+	0x40,		/* gcc_usb3_phy_pipe_clk */
+	0x45,		/* gcc_usb_phy_cfg_ahb2phy_clk */
+	0x13D,		/* gpu_cc_debug_mux */
+	0x22,		/* mmss_cc_debug_mux */
+	0xC0,		/* cpu_cc_debug_mux */
+};
+
+static struct clk_debug_mux gcc_debug_mux = {
+	.priv = &debug_mux_priv,
+	.en_mask = BIT(16),
+	.debug_offset = 0x62000,
+	.post_div_offset = 0x62000,
+	.cbcr_offset = 0x62000,
+	.src_sel_mask = 0x3FF,
+	.src_sel_shift = 0,
+	.post_div_mask = 0xF000,
+	.post_div_shift = 12,
+	.post_div_val = 1,
+	.mux_sels = gcc_debug_mux_sels,
+	.hw.init = &(struct clk_init_data){
+		.name = "gcc_debug_mux",
+		.ops = &clk_debug_mux_ops,
+		.parent_names = gcc_debug_mux_parent_names,
+		.num_parents = ARRAY_SIZE(gcc_debug_mux_parent_names),
+		.flags = CLK_IS_MEASURE,
+	},
+};
+
+static const char *const gpu_cc_debug_mux_parent_names[] = {
+	"gpucc_gfx3d_clk",
+	"gpucc_rbbmtimer_clk",
+	"gpucc_rbcpr_clk",
+};
+
+static int gpu_cc_debug_mux_sels[] = {
+	0x8,		/* gpucc_gfx3d_clk */
+	0x5,		/* gpucc_rbbmtimer_clk */
+	0x3,		/* gpucc_rbcpr_clk */
+};
+
+static struct clk_debug_mux gpu_cc_debug_mux = {
+	.priv = &debug_mux_priv,
+	.en_mask = BIT(16),
+	.debug_offset = 0x120,
+	.post_div_offset = 0x120,
+	.cbcr_offset = 0x120,
+	.src_sel_mask = 0xF,
+	.src_sel_shift = 0,
+	.post_div_mask = 0x60000,
+	.post_div_shift = 17,
+	.post_div_val = 3,
+	.mux_sels = gpu_cc_debug_mux_sels,
+	.hw.init = &(struct clk_init_data){
+		.name = "gpu_cc_debug_mux",
+		.ops = &clk_debug_mux_ops,
+		.parent_names = gpu_cc_debug_mux_parent_names,
+		.num_parents = ARRAY_SIZE(gpu_cc_debug_mux_parent_names),
+		.flags = CLK_IS_MEASURE,
+	},
 };
 
 static const char *const cpu_cc_debug_mux_parent_names[] = {
-	"perfcl_clk",
-	"pwrcl_clk",
+	"measure_only_perfcl_clk",
+	"measure_only_pwrcl_clk",
 };
 
 static int cpu_cc_debug_mux_sels[] = {
-	0x1,		/* perfcl_clk */
-	0x0,		/* pwrcl_clk */
+	0x1,		/* measure_only_perfcl_clk */
+	0x0,		/* measure_only_pwrcl_clk */
 };
 
 static int apss_cc_debug_mux_pre_divs[] = {
-	0x8,		/* perfcl_clk */
-	0x8,		/* pwrcl_clk */
+	0x8,		/* measure_only_perfcl_clk */
+	0x8,		/* measure_only_pwrcl_clk */
 };
 
 static struct clk_debug_mux cpu_cc_debug_mux = {
@@ -2845,7 +3052,7 @@ static struct clk_debug_mux cpu_cc_debug_mux = {
 };
 
 static const char *const mmss_cc_debug_mux_parent_names[] = {
-	"mmssnoc_axi_clk",
+	"measure_only_mmssnoc_axi_clk",
 	"mmss_bimc_smmu_ahb_clk",
 	"mmss_bimc_smmu_axi_clk",
 	"mmss_camss_ahb_clk",
@@ -2928,119 +3135,119 @@ static const char *const mmss_cc_debug_mux_parent_names[] = {
 	"mmss_misc_cxo_clk",
 	"mmss_mnoc_ahb_clk",
 	"mmss_snoc_dvm_axi_clk",
+	"mmss_throttle_camss_axi_clk",
+	"mmss_throttle_mdss_axi_clk",
+	"mmss_throttle_video_axi_clk",
 	"mmss_video_ahb_clk",
 	"mmss_video_axi_clk",
 	"mmss_video_core_clk",
 	"mmss_video_subcore0_clk",
-	"mmss_throttle_camss_axi_clk",
-	"mmss_throttle_mdss_axi_clk",
-	"mmss_throttle_video_axi_clk",
 };
 
 static int mmss_cc_debug_mux_sels[] = {
-	0x004,		/* mmssnoc_axi_clk" */
-	0x00C,		/* mmss_bimc_smmu_ahb_clk */
-	0x00D,		/* mmss_bimc_smmu_axi_clk */
-	0x037,		/* mmss_camss_ahb_clk" */
-	0x02E,		/* mmss_camss_cci_ahb_clk */
-	0x02D,		/* mmss_camss_cci_clk" */
-	0x08D,		/* mmss_camss_cphy_csid0_clk */
-	0x08E,		/* mmss_camss_cphy_csid1_clk */
-	0x08F,		/* mmss_camss_cphy_csid2_clk */
-	0x090,		/* mmss_camss_cphy_csid3_clk */
-	0x03B,		/* mmss_camss_cpp_ahb_clk */
-	0x07A,		/* mmss_camss_cpp_axi_clk */
-	0x03A,		/* mmss_camss_cpp_clk" */
-	0x073,		/* mmss_camss_cpp_vbif_ahb_clk */
-	0x042,		/* mmss_camss_csi0_ahb_clk */
-	0x041,		/* mmss_camss_csi0_clk */
-	0x02F,		/* mmss_camss_csi0phytimer_clk */
-	0x045,		/* mmss_camss_csi0pix_clk */
-	0x044,		/* mmss_camss_csi0rdi_clk */
-	0x047,		/* mmss_camss_csi1_ahb_clk */
-	0x046,		/* mmss_camss_csi1_clk */
-	0x030,		/* mmss_camss_csi1phytimer_clk */
-	0x04A,		/* mmss_camss_csi1pix_clk */
-	0x049,		/* mmss_camss_csi1rdi_clk */
-	0x04C,		/* mmss_camss_csi2_ahb_clk */
-	0x04B,		/* mmss_camss_csi2_clk */
-	0x031,		/* mmss_camss_csi2phytimer_clk */
-	0x04F,		/* mmss_camss_csi2pix_clk */
-	0x04E,		/* mmss_camss_csi2rdi_clk */
-	0x051,		/* mmss_camss_csi3_ahb_clk */
-	0x050,		/* mmss_camss_csi3_clk */
-	0x054,		/* mmss_camss_csi3pix_clk" */
-	0x053,		/* mmss_camss_csi3rdi_clk */
-	0x03F,		/* mmss_camss_csi_vfe0_clk */
-	0x040,		/* mmss_camss_csi_vfe1_clk */
-	0x043,		/* mmss_camss_csiphy0_clk */
-	0x085,		/* mmss_camss_csiphy1_clk */
-	0x088,		/* mmss_camss_csiphy2_clk */
-	0x027,		/* mmss_camss_gp0_clk" */
-	0x028,		/* mmss_camss_gp1_clk" */
-	0x033,		/* mmss_camss_ispif_ahb_clk */
-	0x032,		/* mmss_camss_jpeg0_clk */
-	0x035,		/* mmss_camss_jpeg_ahb_clk */
-	0x036,		/* mmss_camss_jpeg_axi_clk */
-	0x029,		/* mmss_camss_mclk0_clk */
-	0x02A,		/* mmss_camss_mclk1_clk */
-	0x02B,		/* mmss_camss_mclk2_clk */
-	0x02C,		/* mmss_camss_mclk3_clk */
-	0x026,		/* mmss_camss_micro_ahb_clk */
-	0x025,		/* mmss_camss_top_ahb_clk */
-	0x086,		/* mmss_camss_vfe0_ahb_clk */
-	0x038,		/* mmss_camss_vfe0_clk */
-	0x071,		/* mmss_camss_vfe0_stream_clk */
-	0x087,		/* mmss_camss_vfe1_ahb_clk */
-	0x039,		/* mmss_camss_vfe1_clk */
-	0x072,		/* mmss_camss_vfe1_stream_clk */
-	0x03C,		/* mmss_camss_vfe_vbif_ahb_clk */
-	0x03D,		/* mmss_camss_vfe_vbif_axi_clk */
-	0x0B8,		/* mmss_csiphy_ahb2crif_clk */
-	0x022,		/* mmss_mdss_ahb_clk" */
-	0x024,		/* mmss_mdss_axi_clk" */
-	0x01E,		/* mmss_mdss_byte0_clk */
-	0x0AD,		/* mmss_mdss_byte0_intf_clk */
-	0x01F,		/* mmss_mdss_byte1_clk */
-	0x0B6,		/* mmss_mdss_byte1_intf_clk */
-	0x09C,		/* mmss_mdss_dp_aux_clk */
-	0x09A,		/* mmss_mdss_dp_crypto_clk */
-	0x09D,		/* mmss_mdss_dp_gtc_clk */
-	0x098,		/* mmss_mdss_dp_link_clk */
-	0x099,		/* mmss_mdss_dp_link_intf_clk */
-	0x09B,		/* mmss_mdss_dp_pixel_clk */
-	0x020,		/* mmss_mdss_esc0_clk" */
-	0x021,		/* mmss_mdss_esc1_clk" */
-	0x023,		/* mmss_mdss_hdmi_dp_ahb_clk */
-	0x014,		/* mmss_mdss_mdp_clk" */
-	0x016,		/* mmss_mdss_pclk0_clk */
-	0x017,		/* mmss_mdss_pclk1_clk */
-	0x012,		/* mmss_mdss_rot_clk" */
-	0x01C,		/* mmss_mdss_vsync_clk */
-	0x003,		/* mmss_misc_ahb_clk" */
-	0x077,		/* mmss_misc_cxo_clk" */
-	0x001,		/* mmss_mnoc_ahb_clk" */
-	0x013,		/* mmss_snoc_dvm_axi_clk */
-	0x011,		/* mmss_video_ahb_clk" */
-	0x00F,		/* mmss_video_axi_clk" */
-	0x00E,		/* mmss_video_core_clk */
-	0x01A,		/* mmss_video_subcore0_clk */
-	0x0AA,		/* mmss_throttle_camss_axi_clk */
-	0x0AB,		/* mmss_throttle_mdss_axi_clk */
-	0x0AC,		/* mmss_throttle_video_axi_clk */
+	0x4,		/* measure_only_mmssnoc_axi_clk" */
+	0xC,		/* mmss_bimc_smmu_ahb_clk */
+	0xD,		/* mmss_bimc_smmu_axi_clk */
+	0x37,		/* mmss_camss_ahb_clk" */
+	0x2E,		/* mmss_camss_cci_ahb_clk */
+	0x2D,		/* mmss_camss_cci_clk" */
+	0x8D,		/* mmss_camss_cphy_csid0_clk */
+	0x8E,		/* mmss_camss_cphy_csid1_clk */
+	0x8F,		/* mmss_camss_cphy_csid2_clk */
+	0x90,		/* mmss_camss_cphy_csid3_clk */
+	0x3B,		/* mmss_camss_cpp_ahb_clk */
+	0x7A,		/* mmss_camss_cpp_axi_clk */
+	0x3A,		/* mmss_camss_cpp_clk" */
+	0x73,		/* mmss_camss_cpp_vbif_ahb_clk */
+	0x42,		/* mmss_camss_csi0_ahb_clk */
+	0x41,		/* mmss_camss_csi0_clk */
+	0x2F,		/* mmss_camss_csi0phytimer_clk */
+	0x45,		/* mmss_camss_csi0pix_clk */
+	0x44,		/* mmss_camss_csi0rdi_clk */
+	0x47,		/* mmss_camss_csi1_ahb_clk */
+	0x46,		/* mmss_camss_csi1_clk */
+	0x30,		/* mmss_camss_csi1phytimer_clk */
+	0x4A,		/* mmss_camss_csi1pix_clk */
+	0x49,		/* mmss_camss_csi1rdi_clk */
+	0x4C,		/* mmss_camss_csi2_ahb_clk */
+	0x4B,		/* mmss_camss_csi2_clk */
+	0x31,		/* mmss_camss_csi2phytimer_clk */
+	0x4F,		/* mmss_camss_csi2pix_clk */
+	0x4E,		/* mmss_camss_csi2rdi_clk */
+	0x51,		/* mmss_camss_csi3_ahb_clk */
+	0x50,		/* mmss_camss_csi3_clk */
+	0x54,		/* mmss_camss_csi3pix_clk" */
+	0x53,		/* mmss_camss_csi3rdi_clk */
+	0x3F,		/* mmss_camss_csi_vfe0_clk */
+	0x40,		/* mmss_camss_csi_vfe1_clk */
+	0x43,		/* mmss_camss_csiphy0_clk */
+	0x85,		/* mmss_camss_csiphy1_clk */
+	0x88,		/* mmss_camss_csiphy2_clk */
+	0x27,		/* mmss_camss_gp0_clk" */
+	0x28,		/* mmss_camss_gp1_clk" */
+	0x33,		/* mmss_camss_ispif_ahb_clk */
+	0x32,		/* mmss_camss_jpeg0_clk */
+	0x35,		/* mmss_camss_jpeg_ahb_clk */
+	0x36,		/* mmss_camss_jpeg_axi_clk */
+	0x29,		/* mmss_camss_mclk0_clk */
+	0x2A,		/* mmss_camss_mclk1_clk */
+	0x2B,		/* mmss_camss_mclk2_clk */
+	0x2C,		/* mmss_camss_mclk3_clk */
+	0x26,		/* mmss_camss_micro_ahb_clk */
+	0x25,		/* mmss_camss_top_ahb_clk */
+	0x86,		/* mmss_camss_vfe0_ahb_clk */
+	0x38,		/* mmss_camss_vfe0_clk */
+	0x71,		/* mmss_camss_vfe0_stream_clk */
+	0x87,		/* mmss_camss_vfe1_ahb_clk */
+	0x39,		/* mmss_camss_vfe1_clk */
+	0x72,		/* mmss_camss_vfe1_stream_clk */
+	0x3C,		/* mmss_camss_vfe_vbif_ahb_clk */
+	0x3D,		/* mmss_camss_vfe_vbif_axi_clk */
+	0xB8,		/* mmss_csiphy_ahb2crif_clk */
+	0x22,		/* mmss_mdss_ahb_clk" */
+	0x24,		/* mmss_mdss_axi_clk" */
+	0x1E,		/* mmss_mdss_byte0_clk */
+	0xAD,		/* mmss_mdss_byte0_intf_clk */
+	0x1F,		/* mmss_mdss_byte1_clk */
+	0xB6,		/* mmss_mdss_byte1_intf_clk */
+	0x9C,		/* mmss_mdss_dp_aux_clk */
+	0x9A,		/* mmss_mdss_dp_crypto_clk */
+	0x9D,		/* mmss_mdss_dp_gtc_clk */
+	0x98,		/* mmss_mdss_dp_link_clk */
+	0x99,		/* mmss_mdss_dp_link_intf_clk */
+	0x9B,		/* mmss_mdss_dp_pixel_clk */
+	0x20,		/* mmss_mdss_esc0_clk" */
+	0x21,		/* mmss_mdss_esc1_clk" */
+	0x23,		/* mmss_mdss_hdmi_dp_ahb_clk */
+	0x14,		/* mmss_mdss_mdp_clk" */
+	0x16,		/* mmss_mdss_pclk0_clk */
+	0x17,		/* mmss_mdss_pclk1_clk */
+	0x12,		/* mmss_mdss_rot_clk" */
+	0x1C,		/* mmss_mdss_vsync_clk */
+	0x3,		/* mmss_misc_ahb_clk" */
+	0x77,		/* mmss_misc_cxo_clk" */
+	0x1,		/* mmss_mnoc_ahb_clk" */
+	0x13,		/* mmss_snoc_dvm_axi_clk */
+	0xAA,		/* mmss_throttle_camss_axi_clk */
+	0xAB,		/* mmss_throttle_mdss_axi_clk */
+	0xAC,		/* mmss_throttle_video_axi_clk */
+	0x11,		/* mmss_video_ahb_clk" */
+	0xF,		/* mmss_video_axi_clk" */
+	0xE,		/* mmss_video_core_clk */
+	0x1A,		/* mmss_video_subcore0_clk */
 };
 
 static struct clk_debug_mux mmss_cc_debug_mux = {
 	.priv = &debug_mux_priv,
-	.debug_offset = 0x62000,
-	.post_div_offset = 0x62004,
-	.cbcr_offset = 0x62008,
-	.src_sel_mask = 0xFF,
+	.en_mask = BIT(12),
+	.debug_offset = 0x900,
+	.post_div_offset = 0x900,
+	.cbcr_offset = 0x900,
+	.src_sel_mask = 0x1FF,
 	.src_sel_shift = 0,
-	.post_div_mask = 0xF,
-	.period_offset = 0x50,
-	.post_div_shift = 0,
-	.post_div_val = 4,
+	.post_div_mask = 0x6000,
+	.post_div_shift = 13,
+	.post_div_val = 3,
 	.mux_sels = mmss_cc_debug_mux_sels,
 	.hw.init = &(struct clk_init_data){
 		.name = "mmss_cc_debug_mux",
@@ -3051,284 +3258,114 @@ static struct clk_debug_mux mmss_cc_debug_mux = {
 	},
 };
 
-static const char *const gcc_debug_mux_parent_names[] = {
-	"cpu_cc_debug_mux",
-	"mmss_cc_debug_mux",
-	"gpu_cc_debug_mux",
-	"snoc_clk",
-	"cnoc_clk",
-	"cnoc_periph_clk",
-	"bimc_clk",
-	"ce1_clk",
-	"ipa_clk",
-	"gcc_aggre2_ufs_axi_clk",
-	"gcc_aggre2_usb3_axi_clk",
-	"gcc_bimc_gfx_clk",
-	"gcc_bimc_hmss_axi_clk",
-	"gcc_bimc_mss_q6_axi_clk",
-	"gcc_blsp1_ahb_clk",
-	"gcc_blsp1_qup1_i2c_apps_clk",
-	"gcc_blsp1_qup1_spi_apps_clk",
-	"gcc_blsp1_qup2_i2c_apps_clk",
-	"gcc_blsp1_qup2_spi_apps_clk",
-	"gcc_blsp1_qup3_i2c_apps_clk",
-	"gcc_blsp1_qup3_spi_apps_clk",
-	"gcc_blsp1_qup4_i2c_apps_clk",
-	"gcc_blsp1_qup4_spi_apps_clk",
-	"gcc_blsp1_uart1_apps_clk",
-	"gcc_blsp1_uart2_apps_clk",
-	"gcc_blsp2_ahb_clk",
-	"gcc_blsp2_qup1_i2c_apps_clk",
-	"gcc_blsp2_qup1_spi_apps_clk",
-	"gcc_blsp2_qup2_i2c_apps_clk",
-	"gcc_blsp2_qup2_spi_apps_clk",
-	"gcc_blsp2_qup3_i2c_apps_clk",
-	"gcc_blsp2_qup3_spi_apps_clk",
-	"gcc_blsp2_qup4_i2c_apps_clk",
-	"gcc_blsp2_qup4_spi_apps_clk",
-	"gcc_blsp2_uart1_apps_clk",
-	"gcc_blsp2_uart2_apps_clk",
-	"gcc_boot_rom_ahb_clk",
-	"gcc_ce1_ahb_m_clk",
-	"gcc_ce1_axi_m_clk",
-	"gcc_cfg_noc_usb2_axi_clk",
-	"gcc_cfg_noc_usb3_axi_clk",
-	"gcc_dcc_ahb_clk",
-	"gcc_gp1_clk",
-	"gcc_gp2_clk",
-	"gcc_gp3_clk",
-	"gcc_gpu_bimc_gfx_clk",
-	"gcc_gpu_cfg_ahb_clk",
-	"gcc_hmss_dvm_bus_clk",
-	"gcc_hmss_rbcpr_clk",
-	"gcc_mmss_noc_cfg_ahb_clk",
-	"gcc_mmss_sys_noc_axi_clk",
-	"gcc_mss_cfg_ahb_clk",
-	"gcc_mss_mnoc_bimc_axi_clk",
-	"gcc_mss_q6_bimc_axi_clk",
-	"gcc_mss_snoc_axi_clk",
-	"gcc_pdm2_clk",
-	"gcc_pdm_ahb_clk",
-	"gcc_prng_ahb_clk",
-	"gcc_qspi_ahb_clk",
-	"gcc_qspi_ser_clk",
-	"gcc_sdcc1_ahb_clk",
-	"gcc_sdcc1_apps_clk",
-	"gcc_sdcc1_ice_core_clk",
-	"gcc_sdcc2_ahb_clk",
-	"gcc_sdcc2_apps_clk",
-	"gcc_ufs_ahb_clk",
-	"gcc_ufs_axi_clk",
-	"gcc_ufs_ice_core_clk",
-	"gcc_ufs_phy_aux_clk",
-	"gcc_ufs_unipro_core_clk",
-	"gcc_usb20_master_clk",
-	"gcc_usb20_mock_utmi_clk",
-	"gcc_usb20_sleep_clk",
-	"gcc_usb30_master_clk",
-	"gcc_usb30_mock_utmi_clk",
-	"gcc_usb30_sleep_clk",
-	"gcc_usb3_phy_aux_clk",
-	"gcc_usb_phy_cfg_ahb2phy_clk",
-	"gcc_ufs_rx_symbol_0_clk",
-	"gcc_ufs_rx_symbol_1_clk",
-	"gcc_ufs_tx_symbol_0_clk",
-	"gcc_usb3_phy_pipe_clk",
-};
-
-static int gcc_debug_mux_sels[] = {
-	0x0C0,		/* cpu_cc_debug_mux */
-	0x000,		/* mmss_cc_debug_mux TODO */
-	0x000,		/* gpu_cc_debug_mux TODO*/
-	0x000,		/* snoc_clk */
-	0x00E,		/* cnoc_clk */
-	0x198,		/* cnoc_periph_clk */
-	0x19D,		/* bimc_clk */
-	0x097,		/* ce1_clk */
-	0x11b,		/* ipa_clk */
-	0x10B,		/* gcc_aggre2_ufs_axi_clk */
-	0x10A,		/* gcc_aggre2_usb3_axi_clk */
-	0x0AC,		/* gcc_bimc_gfx_clk */
-	0x0BB,		/* gcc_bimc_hmss_axi_clk */
-	0x0A3,		/* gcc_bimc_mss_q6_axi_clk */
-	0x04A,		/* gcc_blsp1_ahb_clk */
-	0x04D,		/* gcc_blsp1_qup1_i2c_apps_clk */
-	0x04C,		/* gcc_blsp1_qup1_spi_apps_clk */
-	0x051,		/* gcc_blsp1_qup2_i2c_apps_clk */
-	0x050,		/* gcc_blsp1_qup2_spi_apps_clk */
-	0x055,		/* gcc_blsp1_qup3_i2c_apps_clk */
-	0x054,		/* gcc_blsp1_qup3_spi_apps_clk */
-	0x059,		/* gcc_blsp1_qup4_i2c_apps_clk */
-	0x058,		/* gcc_blsp1_qup4_spi_apps_clk */
-	0x04E,		/* gcc_blsp1_uart1_apps_clk */
-	0x052,		/* gcc_blsp1_uart2_apps_clk */
-	0x05E,		/* gcc_blsp2_ahb_clk */
-	0x061,		/* gcc_blsp2_qup1_i2c_apps_clk */
-	0x060,		/* gcc_blsp2_qup1_spi_apps_clk */
-	0x065,		/* gcc_blsp2_qup2_i2c_apps_clk */
-	0x064,		/* gcc_blsp2_qup2_spi_apps_clk */
-	0x069,		/* gcc_blsp2_qup3_i2c_apps_clk */
-	0x068,		/* gcc_blsp2_qup3_spi_apps_clk */
-	0x06D,		/* gcc_blsp2_qup4_i2c_apps_clk */
-	0x06C,		/* gcc_blsp2_qup4_spi_apps_clk */
-	0x062,		/* gcc_blsp2_uart1_apps_clk */
-	0x066,		/* gcc_blsp2_uart2_apps_clk */
-	0x07A,		/* gcc_boot_rom_ahb_clk */
-	0x099,		/* gcc_ce1_ahb_m_clk */
-	0x098,		/* gcc_ce1_axi_m_clk */
-	0x168,		/* gcc_cfg_noc_usb2_axi_clk */
-	0x014,		/* gcc_cfg_noc_usb3_axi_clk */
-	0x119,		/* gcc_dcc_ahb_clk */
-	0x0DF,		/* gcc_gp1_clk */
-	0x0E0,		/* gcc_gp2_clk */
-	0x0E1,		/* gcc_gp3_clk */
-	0x13F,		/* gcc_gpu_bimc_gfx_clk */
-	0x13B,		/* gcc_gpu_cfg_ahb_clk */
-	0x0BF,		/* gcc_hmss_dvm_bus_clk */
-	0x0BC,		/* gcc_hmss_rbcpr_clk */
-	0x020,		/* gcc_mmss_noc_cfg_ahb_clk */
-	0x01F,		/* gcc_mmss_sys_noc_axi_clk */
-	0x11F,		/* gcc_mss_cfg_ahb_clk */
-	0x120,		/* gcc_mss_mnoc_bimc_axi_clk */
-	0x124,		/* gcc_mss_q6_bimc_axi_clk */
-	0x123,		/* gcc_mss_snoc_axi_clk */
-	0x074,		/* gcc_pdm2_clk */
-	0x072,		/* gcc_pdm_ahb_clk */
-	0x075,		/* gcc_prng_ahb_clk */
-	0x172,		/* gcc_qspi_ahb_clk */
-	0x173,		/* gcc_qspi_ser_clk */
-	0x16E,		/* gcc_sdcc1_ahb_clk */
-	0x16D,		/* gcc_sdcc1_apps_clk */
-	0x16F,		/* gcc_sdcc1_ice_core_clk */
-	0x047,		/* gcc_sdcc2_ahb_clk */
-	0x046,		/* gcc_sdcc2_apps_clk */
-	0x0EB,		/* gcc_ufs_ahb_clk */
-	0x0EA,		/* gcc_ufs_axi_clk */
-	0x0F1,		/* gcc_ufs_ice_core_clk */
-	0x0F2,		/* gcc_ufs_phy_aux_clk */
-	0x0F0,		/* gcc_ufs_unipro_core_clk */
-	0x169,		/* gcc_usb20_master_clk */
-	0x16B,		/* gcc_usb20_mock_utmi_clk */
-	0x16A,		/* gcc_usb20_sleep_clk */
-	0x03C,		/* gcc_usb30_master_clk */
-	0x03E,		/* gcc_usb30_mock_utmi_clk */
-	0x03D,		/* gcc_usb30_sleep_clk */
-	0x03F,		/* gcc_usb3_phy_aux_clk */
-	0x045,		/* gcc_usb_phy_cfg_ahb2phy_clk */
-	0x0ED,		/* gcc_ufs_rx_symbol_0_clk */
-	0x162,		/* gcc_ufs_rx_symbol_1_clk */
-	0x0EC,		/* gcc_ufs_tx_symbol_0_clk */
-	0x040,		/* gcc_usb3_phy_pipe_clk */
-};
-
-static struct clk_debug_mux gcc_debug_mux = {
-	.priv = &debug_mux_priv,
-	.en_mask = BIT(16),
-	.debug_offset = 0x62000,
-	.post_div_offset = 0x62004,
-	.cbcr_offset = 0x62008,
-	.src_sel_mask = 0x3FF,
-	.src_sel_shift = 0,
-	.post_div_mask = 0xF,
-	.post_div_shift = 0,
-	.period_offset = 0x50,
-	.post_div_val = 1,
-	.mux_sels = gcc_debug_mux_sels,
-	.hw.init = &(struct clk_init_data){
-		.name = "gcc_debug_mux",
-		.ops = &clk_debug_mux_ops,
-		.parent_names = gcc_debug_mux_parent_names,
-		.num_parents = ARRAY_SIZE(gcc_debug_mux_parent_names),
-		.flags = CLK_IS_MEASURE,
-	},
-};
-
-static const char *const gpu_cc_debug_mux_parent_names[] = {
-	"gpucc_gfx3d_clk",
-	"gpucc_rbbmtimer_clk",
-	"gpucc_rbcpr_clk",
-};
-
-static int gpu_cc_debug_mux_sels[] = {
-	0x008,		/* gpucc_gfx3d_clk */
-	0x005,		/* gpucc_rbbmtimer_clk */
-	0x003,		/* gpucc_rbcpr_clk */
-};
-
-static struct clk_debug_mux gpu_cc_debug_mux = {
-	.priv = &debug_mux_priv,
-	.debug_offset = 0x62000,
-	.post_div_offset = 0x62004,
-	.cbcr_offset = 0x62008,
-	.src_sel_mask = 0xFF,
-	.src_sel_shift = 0,
-	.post_div_mask = 0xF,
-	.period_offset = 0x50,
-	.post_div_shift = 0,
-	.post_div_val = 2,
-	.mux_sels = gpu_cc_debug_mux_sels,
-	.hw.init = &(struct clk_init_data){
-		.name = "gpu_cc_debug_mux",
-		.ops = &clk_debug_mux_ops,
-		.parent_names = gpu_cc_debug_mux_parent_names,
-		.num_parents = ARRAY_SIZE(gpu_cc_debug_mux_parent_names),
-		.flags = CLK_IS_MEASURE,
-	},
-};
-
-static struct clk_dummy perfcl_clk = {
+static struct clk_dummy measure_only_perfcl_clk = {
 	.rrate = 1000,
 	.hw.init = &(struct clk_init_data){
-		.name = "perfcl_clk",
+		.name = "measure_only_perfcl_clk",
 		.ops = &clk_dummy_ops,
 	},
 };
 
-static struct clk_dummy pwrcl_clk = {
+static struct clk_dummy measure_only_pwrcl_clk = {
 	.rrate = 1000,
 	.hw.init = &(struct clk_init_data){
-		.name = "pwrcl_clk",
+		.name = "measure_only_pwrcl_clk",
+		.ops = &clk_dummy_ops,
+	},
+};
+
+static struct clk_dummy measure_only_snoc_clk = {
+	.rrate = 1000,
+	.hw.init = &(struct clk_init_data){
+		.name = "measure_only_snoc_clk",
+		.ops = &clk_dummy_ops,
+	},
+};
+
+static struct clk_dummy measure_only_cnoc_clk = {
+	.rrate = 1000,
+	.hw.init = &(struct clk_init_data){
+		.name = "measure_only_cnoc_clk",
+		.ops = &clk_dummy_ops,
+	},
+};
+
+static struct clk_dummy measure_only_cnoc_periph_clk = {
+	.rrate = 1000,
+	.hw.init = &(struct clk_init_data){
+		.name = "measure_only_cnoc_periph_clk",
+		.ops = &clk_dummy_ops,
+	},
+};
+
+static struct clk_dummy measure_only_bimc_clk = {
+	.rrate = 1000,
+	.hw.init = &(struct clk_init_data){
+		.name = "measure_only_bimc_clk",
+		.ops = &clk_dummy_ops,
+	},
+};
+
+static struct clk_dummy measure_only_ce1_clk = {
+	.rrate = 1000,
+	.hw.init = &(struct clk_init_data){
+		.name = "measure_only_ce1_clk",
+		.ops = &clk_dummy_ops,
+	},
+};
+
+static struct clk_dummy measure_only_ipa_clk = {
+	.rrate = 1000,
+	.hw.init = &(struct clk_init_data){
+		.name = "measure_only_ipa_clk",
+		.ops = &clk_dummy_ops,
+	},
+};
+
+static struct clk_dummy measure_only_mmssnoc_axi_clk = {
+	.rrate = 1000,
+	.hw.init = &(struct clk_init_data){
+		.name = "measure_only_mmssnoc_axi_clk",
 		.ops = &clk_dummy_ops,
 	},
 };
 
 struct clk_hw *debugcc_sdm660_hws[] = {
-	&perfcl_clk.hw,
-	&pwrcl_clk.hw,
+	&measure_only_snoc_clk.hw,
+	&measure_only_cnoc_clk.hw,
+	&measure_only_cnoc_periph_clk.hw,
+	&measure_only_bimc_clk.hw,
+	&measure_only_ce1_clk.hw,
+	&measure_only_ipa_clk.hw,
+	&measure_only_mmssnoc_axi_clk.hw,
+	&measure_only_perfcl_clk.hw,
+	&measure_only_pwrcl_clk.hw,
 };
 
 static struct mux_regmap_names mux_list[] = {
-	{ .mux = &cpu_cc_debug_mux, .regmap_name = "qcom,cpu" },
-	{ .mux = &mmss_cc_debug_mux, .regmap_name = "qcom,mmss" },
 	{ .mux = &gcc_debug_mux, .regmap_name = "qcom,gcc" },
 	{ .mux = &gpu_cc_debug_mux, .regmap_name = "qcom,gpu" },
+	{ .mux = &cpu_cc_debug_mux, .regmap_name = "qcom,cpu" },
+	{ .mux = &mmss_cc_debug_mux, .regmap_name = "qcom,mmss" },
+
 };
 
-
 static const struct of_device_id clk_debug_match_table[] = {
-	{ .compatible = "qcom,gcc-debug-sdm660" },
+	{ .compatible = "qcom,sdm660-debugcc" },
 	{}
 };
 
-static int clk_debug_660_probe(struct platform_device *pdev)
+static int clk_debug_sdm660_probe(struct platform_device *pdev)
 {
-	struct resource *res;
 	struct clk *clk;
 	int ret = 0, i;
 
-	BUILD_BUG_ON(ARRAY_SIZE(mmss_cc_debug_mux_parent_names) !=
-		     ARRAY_SIZE(mmss_cc_debug_mux_sels));
 	BUILD_BUG_ON(ARRAY_SIZE(gcc_debug_mux_parent_names) !=
 		     ARRAY_SIZE(gcc_debug_mux_sels));
 	BUILD_BUG_ON(ARRAY_SIZE(gpu_cc_debug_mux_parent_names) !=
 		ARRAY_SIZE(gpu_cc_debug_mux_sels));
-
-	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "dbg_offset");
-	if (!res) {
-		dev_err(&pdev->dev, "Failed to get debug offset.\n");
-		return -EINVAL;
-	}
-	gcc_debug_mux.debug_offset = res->start;
+	BUILD_BUG_ON(ARRAY_SIZE(mmss_cc_debug_mux_parent_names) !=
+		ARRAY_SIZE(mmss_cc_debug_mux_sels));
 
 	clk = devm_clk_get(&pdev->dev, "xo_clk_src");
 	if (IS_ERR(clk)) {
@@ -3372,15 +3409,15 @@ static int clk_debug_660_probe(struct platform_device *pdev)
 }
 
 static struct platform_driver clk_debug_driver = {
-	.probe = clk_debug_660_probe,
+	.probe = clk_debug_sdm660_probe,
 	.driver = {
-		.name = "gcc-debug-sdm660",
+		.name = "debugcc-sdm660",
 		.of_match_table = clk_debug_match_table,
 	},
 };
 
-int __init clk_debug_660_init(void)
+int __init clk_debug_sdm660_init(void)
 {
 	return platform_driver_register(&clk_debug_driver);
 }
-fs_initcall(clk_debug_660_init);
+fs_initcall(clk_debug_sdm660_init);
