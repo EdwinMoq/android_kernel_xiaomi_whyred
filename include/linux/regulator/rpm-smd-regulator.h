@@ -121,4 +121,3 @@ static inline int __init rpm_smd_regulator_driver_init(void) { return 0; }
 
 #endif /* CONFIG_REGULATOR_RPM_SMD */
 #endif
-#endif
