@@ -788,7 +788,6 @@ int msm_camera_unregister_irq(struct platform_device *pdev,
 	}
 	free_irq(irq->start, dev_id);
 	CDBG("Un Registering irq for [resource - %pK]\n", irq);
-	free_irq(irq->start, dev_id);
 
 	return 0;
 }
