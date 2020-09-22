@@ -45,6 +45,7 @@ static bool ice_cap_idx_valid(struct cqhci_host *host,
 	return cap_idx < host->crypto_capabilities.num_crypto_cap;
 }
 
+#if 0
 static uint8_t get_data_unit_size_mask(unsigned int data_unit_size)
 {
 	if (data_unit_size < MINIMUM_DUN_SIZE ||
@@ -54,7 +55,7 @@ static uint8_t get_data_unit_size_mask(unsigned int data_unit_size)
 
 	return data_unit_size / MINIMUM_DUN_SIZE;
 }
-
+#endif
 
 void cqhci_crypto_qti_enable(struct cqhci_host *host)
 {
@@ -106,7 +107,8 @@ static int cqhci_crypto_qti_keyslot_program(struct keyslot_manager *ksm,
 		return -EINVAL;
 	}
 
-	data_unit_mask = get_data_unit_size_mask(key->data_unit_size);
+	//data_unit_mask = get_data_unit_size_mask(key->data_unit_size);
+	data_unit_mask = 1;
 
 	if (!(data_unit_mask &
 	      host->crypto_cap_array[crypto_alg_id].sdus_mask)) {
@@ -342,8 +344,12 @@ int cqhci_crypto_qti_prep_desc(struct cqhci_host *host, struct mmc_request *mrq,
 	}
 
 	if (ice_ctx) {
-		*ice_ctx = DATA_UNIT_NUM(bc->bc_dun[0]) |
-			CRYPTO_CONFIG_INDEX(bc->bc_keyslot) |
+		if (bc->is_ext4)
+			*ice_ctx = DATA_UNIT_NUM(req->__sector);
+		else
+			*ice_ctx = DATA_UNIT_NUM(bc->bc_dun[0]);
+
+		*ice_ctx = *ice_ctx | CRYPTO_CONFIG_INDEX(bc->bc_keyslot) |
 			CRYPTO_ENABLE(true);
 	}
 	return 0;
