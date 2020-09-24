@@ -172,6 +172,8 @@ struct ipa_pm_ctx {
 	int group_tput[IPA_PM_GROUP_MAX];
 };
 
+#if (!defined(CONFIG_IPA) && defined(CONFIG_IPA3))
+
 static struct ipa_pm_ctx *ipa_pm_ctx;
 
 static const char *client_state_to_str[IPA_PM_STATE_MAX] = {
@@ -1565,3 +1567,78 @@ int ipa_pm_remove_dummy_clients(void)
 
 	return rc;
 }
+
+#else //(!defined(CONFIG_IPA) && defined(CONFIG_IPA3))
+
+int ipa_pm_register(struct ipa_pm_register_params *params, u32 *hdl)
+{
+	return 0;
+}
+int ipa_pm_associate_ipa_cons_to_client(u32 hdl, enum ipa_client_type consumer)
+{
+	return 0;
+}
+int ipa_pm_activate(u32 hdl)
+{
+	return 0;
+}
+int ipa_pm_activate_sync(u32 hdl)
+{
+	return 0;
+}
+int ipa_pm_deferred_deactivate(u32 hdl)
+{
+	return 0;
+}
+int ipa_pm_deactivate_sync(u32 hdl)
+{
+	return 0;
+}
+int ipa_pm_set_throughput(u32 hdl, int throughput)
+{
+	return 0;
+}
+int ipa_pm_deregister(u32 hdl)
+{
+	return 0;
+}
+
+/* IPA Internal Functions */
+int ipa_pm_init(struct ipa_pm_init_params *params)
+{
+	return 0;
+}
+int ipa_pm_destroy(void)
+{
+	return 0;
+}
+int ipa_pm_handle_suspend(u32 pipe_bitmask)
+{
+	return 0;
+}
+int ipa_pm_deactivate_all_deferred(void)
+{
+	return 0;
+}
+int ipa_pm_stat(char *buf, int size)
+{
+	return 0;
+}
+int ipa_pm_exceptions_stat(char *buf, int size)
+{
+	return 0;
+}
+void ipa_pm_set_clock_index(int index)
+{
+	return;
+}
+int ipa_pm_add_dummy_clients(s8 power_plan)
+{
+	return 0;
+}
+int ipa_pm_remove_dummy_clients(void)
+{
+	return 0;
+}
+
+#endif //(!defined(CONFIG_IPA) && defined(CONFIG_IPA3))
