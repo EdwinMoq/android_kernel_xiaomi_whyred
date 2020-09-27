@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * f_qc_rndis.c -- RNDIS link function driver
  *
@@ -668,8 +669,8 @@ static int rndis_qc_set_alt(struct usb_function *f, unsigned int intf,
 	struct f_rndis_qc	 *rndis = func_to_rndis_qc(f);
 	struct f_rndis_qc_opts *opts;
 	struct usb_composite_dev *cdev = f->config->cdev;
-	u8 src_connection_idx;
-	u8 dst_connection_idx;
+	int src_connection_idx;
+	int dst_connection_idx;
 	enum usb_ctrl usb_bam_type;
 	int ret;
 
@@ -796,7 +797,7 @@ static void rndis_qc_suspend(struct usb_function *f)
 	else
 		remote_wakeup_allowed = f->config->cdev->gadget->remote_wakeup;
 
-	pr_info("%s(): start rndis suspend: remote_wakeup_allowed:%d\n:",
+	pr_info("%s(): start rndis suspend: remote_wakeup_allowed:%d\n",
 					__func__, remote_wakeup_allowed);
 
 	if (!remote_wakeup_allowed) {
@@ -1127,7 +1128,7 @@ void rndis_ipa_reset_trigger(void)
 
 	rndis = _rndis_qc;
 	if (!rndis) {
-		pr_err("%s: No RNDIS instance", __func__);
+		pr_err("%s: No RNDIS instance\n", __func__);
 		return;
 	}
 
@@ -1146,17 +1147,17 @@ static void rndis_net_ready_notify(void)
 	spin_lock_irqsave(&rndis_lock, flags);
 	rndis = _rndis_qc;
 	if (!rndis) {
-		pr_err("%s: No RNDIS instance", __func__);
+		pr_err("%s: No RNDIS instance\n", __func__);
 		spin_unlock_irqrestore(&rndis_lock, flags);
 		return;
 	}
 	if (rndis->net_ready_trigger) {
-		pr_err("%s: Already triggered", __func__);
+		pr_err("%s: Already triggered\n", __func__);
 		spin_unlock_irqrestore(&rndis_lock, flags);
 		return;
 	}
 
-	pr_debug("%s: Set net_ready_trigger", __func__);
+	pr_debug("%s: Set net_ready_trigger\n", __func__);
 	rndis->net_ready_trigger = true;
 	spin_unlock_irqrestore(&rndis_lock, flags);
 	ipa_data_start_rx_tx(USB_IPA_FUNC_RNDIS);
@@ -1437,13 +1438,13 @@ static int qcrndis_set_inst_name(struct usb_function_instance *fi,
 			rndis, "android_rndis_qc");
 	if (IS_ERR(rndis->dev)) {
 		ret = PTR_ERR(rndis->dev);
-		pr_err("%s: device_create failed for (%d)", __func__, ret);
+		pr_err("%s: device_create failed for (%d)\n", __func__, ret);
 		goto fail_return_minor;
 	}
 	cdev_init(&rndis->cdev, &rndis_qc_fops);
 	ret = cdev_add(&rndis->cdev, MKDEV(MAJOR(rndis_dev), minor), 1);
 	if (ret < 0) {
-		pr_err("%s: cdev_add failed for %s (%d)", __func__,
+		pr_err("%s: cdev_add failed for %s (%d)\n", __func__,
 			name, ret);
 		goto fail_cdev_add;
 	}

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2011-2020, The Linux Foundation. All rights reserved.
  *
@@ -55,8 +56,8 @@ static struct usb_interface_descriptor rmnet_interface_desc = {
 	.bDescriptorType =	USB_DT_INTERFACE,
 	.bNumEndpoints =	3,
 	.bInterfaceClass =	USB_CLASS_VENDOR_SPEC,
-	.bInterfaceSubClass =	USB_SUBCLASS_VENDOR_SPEC,
-	.bInterfaceProtocol =	0x50,
+	.bInterfaceSubClass =	USB_CLASS_VENDOR_SPEC,
+	.bInterfaceProtocol =	USB_CLASS_VENDOR_SPEC,
 	/* .iInterface = DYNAMIC */
 };
 
@@ -215,9 +216,9 @@ static struct usb_interface_descriptor dpl_data_intf_desc = {
 	.bDescriptorType    =	USB_DT_INTERFACE,
 	.bAlternateSetting  =   0,
 	.bNumEndpoints      =	1,
-	.bInterfaceClass    =	USB_CLASS_VENDOR_SPEC,
-	.bInterfaceSubClass =	USB_SUBCLASS_VENDOR_SPEC,
-	.bInterfaceProtocol =	0x80,
+	.bInterfaceClass    =	0xff,
+	.bInterfaceSubClass =	0xff,
+	.bInterfaceProtocol =	0xff,
 };
 
 static struct usb_endpoint_descriptor dpl_fs_data_desc = {
@@ -902,7 +903,7 @@ frmnet_setup(struct usb_function *f, const struct usb_ctrlrequest *ctrl)
 
 			spin_lock(&dev->lock);
 			if (list_empty(&dev->cpkt_resp_q)) {
-				pr_err("ctrl resp queue empty: ");
+				pr_err("ctrl resp queue empty:\n");
 				pr_err("req%02x.%02x v%04x i%04x l%d\n",
 					ctrl->bRequestType, ctrl->bRequest,
 					w_value, w_index, w_length);

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2013-2018, 2020, The Linux Foundation. All rights reserved.
  *
@@ -115,12 +116,12 @@ static void qti_ctrl_queue_notify(struct qti_ctrl_port *port)
 	unsigned long		flags;
 	struct rmnet_ctrl_pkt	*cpkt = NULL;
 
-	pr_debug("%s: Queue empty packet for QTI for port%d",
+	pr_debug("%s: Queue empty packet for QTI for port%d\n",
 		 __func__, port->index);
 
 	spin_lock_irqsave(&port->lock, flags);
 	if (!port->is_open) {
-		pr_err("%s: rmnet ctrl file handler %pK is not open",
+		pr_err("%s: rmnet ctrl file handler %pK is not open\n",
 			   __func__, port);
 		spin_unlock_irqrestore(&port->lock, flags);
 		return;
@@ -136,7 +137,7 @@ static void qti_ctrl_queue_notify(struct qti_ctrl_port *port)
 	list_add_tail(&cpkt->list, &port->cpkt_req_q);
 	spin_unlock_irqrestore(&port->lock, flags);
 
-	pr_debug("%s: Wake up read queue", __func__);
+	pr_debug("%s: Wake up read queue\n", __func__);
 	wake_up(&port->read_wq);
 }
 
@@ -173,7 +174,7 @@ static int gqti_ctrl_send_cpkt_tomodem(enum qti_port_type qport,
 
 	/* drop cpkt if port is not open */
 	if (!port->is_open) {
-		pr_debug("rmnet file handler %pK(index=%d) is not open",
+		pr_debug("rmnet file handler %pK(index=%d) is not open\n",
 		       port, port->index);
 		port->drp_cpkt_cnt++;
 		spin_unlock_irqrestore(&port->lock, flags);
@@ -186,7 +187,7 @@ static int gqti_ctrl_send_cpkt_tomodem(enum qti_port_type qport,
 	spin_unlock_irqrestore(&port->lock, flags);
 
 	/* wakeup read thread */
-	pr_debug("%s: Wake up read queue", __func__);
+	pr_debug("%s: Wake up read queue\n", __func__);
 	wake_up(&port->read_wq);
 
 	return 0;
@@ -368,7 +369,7 @@ static int qti_ctrl_release(struct inode *ip, struct file *fp)
 						struct qti_ctrl_port,
 						ctrl_device);
 
-	pr_debug("Close rmnet control file");
+	pr_debug("Close rmnet control file\n");
 
 	spin_lock_irqsave(&port->lock, flags);
 	port->is_open = false;
@@ -460,7 +461,8 @@ qti_ctrl_write(struct file *fp, const char __user *buf, size_t count,
 	int ret = 0;
 	struct grmnet *g_rmnet = NULL;
 
-	pr_debug("%s: Enter(%zu) port_index=%d", __func__, count, port->index);
+	pr_debug("%s: Enter(%zu) port_index=%d\n", __func__,
+		count, port->index);
 
 	if (!count) {
 		pr_debug("zero length ctrl pkt\n");
@@ -525,7 +527,7 @@ qti_ctrl_write(struct file *fp, const char __user *buf, size_t count,
 	kfree(kbuf);
 	qti_ctrl_unlock(&port->write_excl);
 
-	pr_debug("%s: Exit(%zu)", __func__, count);
+	pr_debug("%s: Exit(%zu)\n", __func__, count);
 	return (ret) ? ret : count;
 }
 
@@ -571,7 +573,7 @@ static long qti_ctrl_ioctl(struct file *fp, unsigned int cmd, unsigned long arg)
 		val = atomic_read(&port->line_state);
 		ret = copy_to_user((void __user *)arg, &val, sizeof(val));
 		if (ret) {
-			pr_err("copying to user space failed");
+			pr_err("copying to user space failed\n");
 			ret = -EFAULT;
 		}
 		pr_debug("%s: Sent line_state: %d for port type:%d\n", __func__,
@@ -610,12 +612,12 @@ static long qti_ctrl_ioctl(struct file *fp, unsigned int cmd, unsigned long arg)
 		ret = copy_to_user((void __user *)arg, &info,
 			sizeof(info));
 		if (ret) {
-			pr_err("copying to user space failed");
+			pr_err("copying to user space failed\n");
 			ret = -EFAULT;
 		}
 		break;
 	default:
-		pr_err("wrong parameter");
+		pr_err("wrong parameter\n");
 		ret = -EINVAL;
 	}
 

@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /* Copyright (c) 2011-2017, 2020, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -75,10 +76,26 @@ enum data_xport_type {
 	NR_XPORT_TYPES
 };
 
-int gbam_connect(struct data_port *gr, enum bam_dmux_func_type func);
-void gbam_disconnect(struct data_port *gr, enum bam_dmux_func_type func);
-void gbam_cleanup(enum bam_dmux_func_type func);
-int gbam_setup(enum bam_dmux_func_type func);
+static inline int gbam_setup(enum bam_dmux_func_type func)
+{
+	return 0;
+}
+
+static inline void gbam_cleanup(enum bam_dmux_func_type func)
+{
+}
+
+static inline int gbam_connect(struct data_port *gr,
+		enum bam_dmux_func_type func)
+{
+	return 0;
+}
+
+static inline void gbam_disconnect(struct data_port *gr,
+		enum bam_dmux_func_type func)
+{
+}
+
 int gbam_mbim_connect(struct usb_gadget *g, struct usb_ep *in,
 			struct usb_ep *out);
 void gbam_mbim_disconnect(void);

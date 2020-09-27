@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /* Copyright (c) 2014-2018, 2020, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -177,11 +178,11 @@ void ipa_data_start_rx_tx(enum ipa_func_type func)
 	unsigned long flags;
 	struct usb_ep *epin, *epout;
 
-	pr_debug("%s: Triggered: starting tx, rx", __func__);
+	pr_debug("%s: Triggered: starting tx, rx\n", __func__);
 	/* queue in & out requests */
 	port = ipa_data_ports[func];
 	if (!port) {
-		pr_err("%s: port is NULL, can't start tx, rx", __func__);
+		pr_err("%s: port is NULL, can't start tx, rx\n", __func__);
 		return;
 	}
 
@@ -189,19 +190,19 @@ void ipa_data_start_rx_tx(enum ipa_func_type func)
 
 	if (!port->port_usb || !port->port_usb->in ||
 		!port->port_usb->out) {
-		pr_err("%s: Can't start tx, rx, ep not enabled", __func__);
+		pr_err("%s: Can't start tx, rx, ep not enabled\n", __func__);
 		spin_unlock_irqrestore(&port->port_lock, flags);
 		return;
 	}
 
 	if (!port->rx_req || !port->tx_req) {
-		pr_err("%s: No request d->rx_req=%pK, d->tx_req=%pK", __func__,
-			port->rx_req, port->tx_req);
+		pr_err("%s: No request d->rx_req=%pK, d->tx_req=%pK\n",
+			__func__, port->rx_req, port->tx_req);
 		spin_unlock_irqrestore(&port->port_lock, flags);
 		return;
 	}
 	if (!port->is_connected) {
-		pr_debug("%s: pipes are disconnected", __func__);
+		pr_debug("%s: pipes are disconnected\n", __func__);
 		spin_unlock_irqrestore(&port->port_lock, flags);
 		return;
 	}
@@ -211,11 +212,11 @@ void ipa_data_start_rx_tx(enum ipa_func_type func)
 	spin_unlock_irqrestore(&port->port_lock, flags);
 
 	/* queue in & out requests */
-	pr_debug("%s: Starting rx", __func__);
+	pr_debug("%s: Starting rx\n", __func__);
 	if (epout)
 		ipa_data_start_endless_xfer(port, false);
 
-	pr_debug("%s: Starting tx", __func__);
+	pr_debug("%s: Starting tx\n", __func__);
 	if (epin)
 		ipa_data_start_endless_xfer(port, true);
 }
@@ -317,7 +318,7 @@ void ipa_data_disconnect(struct data_port *gp, enum ipa_func_type func)
 
 	port = ipa_data_ports[func];
 	if (!port) {
-		pr_err("port %u is NULL", func);
+		pr_err("port %u is NULL\n", func);
 		return;
 	}
 
@@ -696,7 +697,7 @@ static void ipa_data_connect_work(struct work_struct *w)
 
 	/* Don't queue the transfers yet, only after network stack is up */
 	if (port->func_type == USB_IPA_FUNC_RNDIS) {
-		pr_debug("%s: Not starting now, waiting for network notify",
+		pr_debug("%s: Not starting now, waiting for network notify\n",
 			__func__);
 		return;
 	}
@@ -706,7 +707,7 @@ static void ipa_data_connect_work(struct work_struct *w)
 	if (gport->in)
 		ipa_data_start_endless_xfer(port, true);
 
-	pr_debug("Connect workqueue done (port %pK)", port);
+	pr_debug("Connect workqueue done (port %pK)\n", port);
 	return;
 
 disconnect_usb_bam_ipa_out:
@@ -823,7 +824,7 @@ int ipa_data_connect(struct data_port *gp, enum ipa_func_type func,
 		port->port_usb->in->endless = true;
 		ret = usb_ep_enable(port->port_usb->in);
 		if (ret) {
-			pr_err("usb_ep_enable failed eptype:IN ep:%pK",
+			pr_err("usb_ep_enable failed eptype:IN ep:%pK\n",
 						port->port_usb->in);
 			usb_ep_free_request(port->port_usb->in, port->tx_req);
 			port->tx_req = NULL;
@@ -836,7 +837,7 @@ int ipa_data_connect(struct data_port *gp, enum ipa_func_type func,
 		port->port_usb->out->endless = true;
 		ret = usb_ep_enable(port->port_usb->out);
 		if (ret) {
-			pr_err("usb_ep_enable failed eptype:OUT ep:%pK",
+			pr_err("usb_ep_enable failed eptype:OUT ep:%pK\n",
 						port->port_usb->out);
 			usb_ep_free_request(port->port_usb->out, port->rx_req);
 			port->rx_req = NULL;
@@ -1097,7 +1098,7 @@ void ipa_data_resume(struct data_port *gp, enum ipa_func_type func,
 
 	port = ipa_data_ports[func];
 	if (!port) {
-		pr_err("port %u is NULL", func);
+		pr_err("port %u is NULL\n", func);
 		return;
 	}
 
@@ -1153,12 +1154,12 @@ static void bam2bam_data_resume_work(struct work_struct *w)
 
 	spin_lock_irqsave(&port->port_lock, flags);
 	if (!port->port_usb || !port->port_usb->cdev) {
-		pr_err("port->port_usb or cdev is NULL");
+		pr_err("port->port_usb or cdev is NULL\n");
 		goto exit;
 	}
 
 	if (!port->port_usb->cdev->gadget) {
-		pr_err("port->port_usb->cdev->gadget is NULL");
+		pr_err("port->port_usb->cdev->gadget is NULL\n");
 		goto exit;
 	}
 
@@ -1259,7 +1260,7 @@ void ipa_data_port_select(enum ipa_func_type func)
 
 void ipa_data_free(enum ipa_func_type func)
 {
-	pr_debug("freeing %d IPA BAM port", func);
+	pr_debug("freeing %d IPA BAM port\n", func);
 
 	kfree(ipa_data_ports[func]);
 	ipa_data_ports[func] = NULL;
@@ -1284,7 +1285,7 @@ int ipa_data_setup(enum ipa_func_type func)
 {
 	int ret;
 
-	pr_debug("requested %d IPA BAM port", func);
+	pr_debug("requested %d IPA BAM port\n", func);
 
 	if (func >= USB_IPA_NUM_FUNCS) {
 		pr_err("Invalid num of ports count:%d\n", func);
@@ -1303,7 +1304,7 @@ int ipa_data_setup(enum ipa_func_type func)
 			goto free_ipa_ports;
 	}
 	if (ipa_data_wq) {
-		pr_debug("ipa_data_wq is already setup.");
+		pr_debug("ipa_data_wq is already setup.\n");
 		return 0;
 	}
 
@@ -1375,7 +1376,7 @@ void ipa_data_start_rndis_ipa(enum ipa_func_type func)
 
 	port = ipa_data_ports[func];
 	if (!port) {
-		pr_err("%s: port is NULL", __func__);
+		pr_err("%s: port is NULL\n", __func__);
 		return;
 	}
 
@@ -1401,7 +1402,7 @@ void ipa_data_stop_rndis_ipa(enum ipa_func_type func)
 
 	port = ipa_data_ports[func];
 	if (!port) {
-		pr_err("%s: port is NULL", __func__);
+		pr_err("%s: port is NULL\n", __func__);
 		return;
 	}
 
