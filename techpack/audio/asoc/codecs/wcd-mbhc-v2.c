@@ -22,15 +22,11 @@
 #include <linux/soc/qcom/fsa4480-i2c.h>
 #include <sound/soc.h>
 #include <sound/jack.h>
-#include <linux/switch.h>
 #include <asoc/msm-cdc-pinctrl.h>
 #include <asoc/wcdcal-hwdep.h>
 #include "wcd-mbhc-legacy.h"
 #include "wcd-mbhc-adc.h"
 #include <asoc/wcd-mbhc-v2-api.h>
-
-/* Add for get headset state tsx 10/19 */
-struct switch_dev sdev;
 
 void wcd_mbhc_jack_report(struct wcd_mbhc *mbhc,
 			  struct snd_soc_jack *jack, int status, int mask)
@@ -564,9 +560,6 @@ void wcd_mbhc_report_plug(struct wcd_mbhc *mbhc, int insertion,
 
 	pr_debug("%s: enter insertion %d hph_status %x\n",
 		 __func__, insertion, mbhc->hph_status);
-
-	/* Add for get headset state tsx 10/19 */
-	switch_set_state(&sdev,insertion);
 
 	if (!insertion) {
 		/* Report removal */
@@ -1426,11 +1419,6 @@ static int wcd_mbhc_initialise(struct wcd_mbhc *mbhc)
 
 	pr_debug("%s: enter\n", __func__);
 	WCD_MBHC_RSC_LOCK(mbhc);
-
-	/* Add for get headset state tsx 10/19 */
-	sdev.name = "h2w";
-	if(switch_dev_register(&sdev)<0) 
-	    pr_err("%s,register headset switch fail\n",__func__);
 
 	/* enable HS detection */
 	if (mbhc->mbhc_cb->hph_pull_up_control_v2)
