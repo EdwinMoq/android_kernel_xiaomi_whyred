@@ -24,10 +24,10 @@
 };
 
 &pm660l_wled {
-	qcom,fs-curr-ua = <18000>;
+	qcom,fs-current-limit = <18000>;
 	qcom,string-cfg = <3>;
 	qcom,en-cabc;
-	/delete-property/ qcom,auto-calibration-enable;
+	/delete-property/ qcom,auto-calibration;
 };
 
 &lcdb_ldo_vreg {
