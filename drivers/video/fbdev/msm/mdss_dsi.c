@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /* Copyright (c) 2012-2021, The Linux Foundation. All rights reserved. */
+/* Copyright (C) 2019 XiaoMi, Inc. */
 
 #include <linux/module.h>
 #include <linux/interrupt.h>
@@ -432,11 +433,13 @@ static int mdss_dsi_panel_power_lp(struct mdss_panel_data *pdata, int enable)
 	return 0;
 }
 
+extern bool ESD_TE_status;
 static int mdss_dsi_panel_power_ctrl(struct mdss_panel_data *pdata,
 	int power_state)
 {
 	int ret = 0;
 	struct mdss_panel_info *pinfo;
+	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
 
 	if (pdata == NULL) {
 		pr_err("%s: Invalid input data\n", __func__);
@@ -470,8 +473,44 @@ static int mdss_dsi_panel_power_ctrl(struct mdss_panel_data *pdata,
 	case MDSS_PANEL_POWER_ON:
 		if (mdss_dsi_is_panel_on_lp(pdata))
 			ret = mdss_dsi_panel_power_lp(pdata, false);
-		else
+		else{
+			if(ESD_TE_status){
+				ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
+							panel_data);
+
+				ret = mdss_dsi_panel_reset(pdata, 0);
+				if(ret){
+					pr_warn("%s: Panel reset failed. rc=%d\n", __func__, ret);
+					ret = 0;
+				}
+				if(mdss_dsi_pinctrl_set_state(ctrl_pdata, false))
+					pr_debug("reset disable:pinctrl not enable \n");
+
+				ret = msm_dss_enable_vreg(ctrl_pdata->panel_power_data.vreg_config,
+						ctrl_pdata->panel_power_data.num_vreg, 0);
+				if(ret)
+					pr_err("%s:failed to disable vreg for %s\n", __func__, __mdss_dsi_pm_name(DSI_PANEL_PM));
+				msleep(10);
+				mdss_dsi_panel_reset(pdata, 1);
+				msleep(10);
+				mdss_dsi_panel_reset(pdata, 0);
+				msleep(1);
+				mdss_dsi_panel_reset(pdata, 1);
+				msleep(10);
+				mdss_dsi_panel_reset(pdata, 0);
+				msleep(300);
+				mdss_dsi_panel_reset(pdata, 1);
+				msleep(20);
+				mdss_dsi_panel_reset(pdata, 0);
+				msleep(20);
+				mdss_dsi_panel_reset(pdata, 1);
+				msleep(20);
+				mdss_dsi_panel_reset(pdata, 0);
+
+				ESD_TE_status = false;
+			}
 			ret = mdss_dsi_panel_power_on(pdata);
+		}
 		break;
 	case MDSS_PANEL_POWER_LP1:
 	case MDSS_PANEL_POWER_LP2:
