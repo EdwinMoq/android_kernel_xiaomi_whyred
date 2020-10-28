@@ -22,10 +22,6 @@
 	};
 };
 
-&pm660_coincell {
-	/delete-property/ qcom,charge-enable;
-};
-
 &pm660_charger {
 	qcom,micro-usb;
 	qcom,usb-icl-ua = <2000000>;
