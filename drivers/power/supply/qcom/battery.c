@@ -2,6 +2,7 @@
 /*
  * Copyright (c) 2017-2020 The Linux Foundation. All rights reserved.
  */
+/* Copyright (C) 2019 XiaoMi, Inc. */
 
 #define pr_fmt(fmt) "QCOM-BATT: %s: " fmt, __func__
 
@@ -44,6 +45,7 @@
 #define FCC_VOTER			"FCC_VOTER"
 #define MAIN_FCC_VOTER			"MAIN_FCC_VOTER"
 #define PD_VOTER			"PD_VOTER"
+#define PL_TEMP_VOTER			"PL_TEMP_VOTER"
 
 struct pl_data {
 	int			pl_mode;
@@ -117,7 +119,7 @@ enum {
 	FORCE_INOV_DISABLE_BIT	= BIT(1),
 };
 
-static int debug_mask;
+static int debug_mask = 0xff;
 
 #define pl_dbg(chip, reason, fmt, ...)				\
 	do {								\
@@ -398,6 +400,10 @@ static int validate_parallel_icl(struct pl_data *chip, bool *disable)
 	return 0;
 }
 
+#if defined(CONFIG_XIAOMI_WHYRED)
+#define ONLY_PM660_CURRENT_UA 2000000
+#endif
+
 static void split_settled(struct pl_data *chip)
 {
 	union power_supply_propval pval = {0, };
@@ -447,6 +453,15 @@ static void split_settled(struct pl_data *chip)
 		}
 
 		pval.intval = main_ua;
+		#if defined(CONFIG_XIAOMI_WHYRED)
+		if (chip->pl_mode == POWER_SUPPLY_PL_USBIN_USBIN) {
+			pr_err("pl_disable_votable effective main_psy current_ua =%d \n", pval.intval);
+			if (get_effective_result_locked(chip->pl_disable_votable) && (pval.intval > ONLY_PM660_CURRENT_UA)){
+				pr_err("pl_disable_votable effective main_psy force current_ua =%d to %d \n", pval.intval, ONLY_PM660_CURRENT_UA);
+			pval.intval = ONLY_PM660_CURRENT_UA;
+			}
+		}
+		#endif
 		/* Set ICL on main charger */
 		rc = power_supply_set_property(chip->main_psy,
 				POWER_SUPPLY_PROP_CURRENT_MAX, &pval);
@@ -821,7 +836,7 @@ skip_fcc_step_update:
 }
 
 #define MINIMUM_PARALLEL_FCC_UA		500000
-#define PL_TAPER_WORK_DELAY_MS		500
+#define PL_TAPER_WORK_DELAY_MS		100
 #define TAPER_RESIDUAL_PCT		90
 #define TAPER_REDUCTION_UA		200000
 static void pl_taper_work(struct work_struct *work)
@@ -1206,7 +1221,7 @@ static bool is_batt_available(struct pl_data *chip)
 	return true;
 }
 
-#define PARALLEL_FLOAT_VOLTAGE_DELTA_UV 50000
+#define PARALLEL_FLOAT_VOLTAGE_DELTA_UV 100000
 static int pl_fv_vote_callback(struct votable *votable, void *data,
 			int fv_uv, const char *client)
 {
@@ -1299,7 +1314,7 @@ static int usb_icl_vote_callback(struct votable *votable, void *data,
 	 *	unvote USBIN_I_VOTER) the status_changed_work enables
 	 *	USBIN_I_VOTER based on settled current.
 	 */
-	if (icl_ua <= 1400000)
+	if (icl_ua <= 1300000)
 		vote(chip->pl_enable_votable_indirect, USBIN_I_VOTER, false, 0);
 	else
 		schedule_delayed_work(&chip->status_change_work,
@@ -1769,10 +1784,10 @@ static void handle_settled_icl_change(struct pl_data *chip)
 	}
 	main_limited = pval.intval;
 
-	if ((main_limited && (main_settled_ua + chip->pl_settled_ua) < 1400000)
+	if ((main_limited && (main_settled_ua + chip->pl_settled_ua) < 1300000)
 			|| (main_settled_ua == 0)
 			|| ((total_current_ua >= 0) &&
-				(total_current_ua <= 1400000)))
+				(total_current_ua <= 1300000)))
 		vote(chip->pl_enable_votable_indirect, USBIN_I_VOTER, false, 0);
 	else
 		vote(chip->pl_enable_votable_indirect, USBIN_I_VOTER, true, 0);

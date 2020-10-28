@@ -2,6 +2,7 @@
 /*
  * Copyright (c) 2016-2018, 2020-2021, The Linux Foundation. All rights reserved.
  */
+/* Copyright (C) 2019 XiaoMi, Inc. */
 
 #ifndef __FG_REG_H__
 #define __FG_REG_H__
