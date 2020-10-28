@@ -1,0 +1,156 @@
+/* Copyright (c) 2017, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2019 XiaoMi, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+*/
+
+&vendor {
+	mtp_batterydata: qcom,battery-data {
+		qcom,batt-id-range-pct = <15>;
+		#include "batterydata/fg-gen3-batterydata-l6650sun-4000mah.dtsi"
+		#include "batterydata/fg-gen3-batterydata-l6650cos-4000mah.dtsi"
+		#include "batterydata/fg-gen3-batterydata-l6650desay-4000mah.dtsi"
+		/delete-node/ qcom,itech_3000mah;
+		/delete-node/ qcom,ascent_3450mah;
+	};
+};
+
+&red_led {
+	qcom,ramp-step-ms = <128>;
+	qcom,idx-len = <26>;
+	qcom,duty-pcts =
+		[3C 3C 3B 3A 3B 37 35 33 31 2E 2A 27 23
+		 1F 1B 17 13 0E 09 05 00 00 00 00 00 00];
+};
+
+&pm660_coincell {
+	/delete-property/ qcom,charge-enable;
+};
+
+&pm660_charger {
+	qcom,micro-usb;
+	qcom,usb-icl-ua = <2000000>;
+	qcom,dc-icl-ua = <2000000>;
+	qcom,fcc-max-ua = <2500000>;
+	qcom,fv-max-uv  = <4400000>;
+	qcom,sw-jeita-enable;
+	qcom,thermal-mitigation
+			= <2500000 2300000 2000000 1500000 1000000 400000 200000>;
+	qcom,thermal-mitigation-china
+			= <2500000 2300000 2000000 1500000 1000000 400000 200000>;
+};
+
+&pm660_pdphy {
+	status = "disabled";
+};
+
+&pm660_fg {
+	qcom,fg-cutoff-voltage = <3400>;
+	qcom,fg-chg-term-current = <200>;
+	qcom,fg-sys-term-current = <300>;
+	qcom,fg-recharge-voltage = <4320>;
+	qcom,fg-jeita-thresholds = <0 15 45 60>;
+	qcom,fg-jeita-hyst-temp = <0>;
+};
+
+&pm660_haptics {
+	qcom,actuator-type = "erm";
+	qcom,vmax-mv = <3000>;
+};
+
+&usb3 {
+	extcon = <&pm660_charger>;
+	vbus_dwc3-supply = <&smb2_vbus>;
+
+	dwc3@a800000 {
+		usb-phy = <&qusb_phy0>, <&usb_nop_phy>;
+		maximum-speed = "high-speed";
+	};
+
+	qcom,usbbam@a904000 {
+		qcom,pipe2 {
+			qcom,dst-bam-pipe-index = <2>;
+		};
+	};
+};
+
+&qusb_phy0 {
+	qcom,qusb-phy-init-seq = <0xf8 0x80
+			0x63 0x84
+			0x83 0x88
+			0xc0 0x8c
+			0x30 0x08
+			0x79 0x0c
+			0x21 0x10
+			0x14 0x9c
+			0x9f 0x1c
+			0x00 0x18>;
+};
+
+&soc {
+	qcom,sensor-information {
+		sensor_information22: qcom,sensor-information-22 {
+			qcom,sensor-type = "adc";
+			qcom,sensor-name = "backlight_therm";
+		};
+	};
+
+	usb_nop_phy: usb_nop_phy {
+		compatible = "usb-nop-xceiv";
+	};
+};
+
+&pm660_pon {
+	qcom,pon_1 {
+		qcom,support-reset = <1>;
+		qcom,s1-timer = <4480>;
+		qcom,s2-timer = <2000>;
+		qcom,s2-type = <7>;
+	};
+
+	qcom,pon_3 {
+		qcom,pon-type = <3>;
+		qcom,pull-up = <1>;
+		qcom,support-reset = <1>;
+		qcom,s1-timer = <4480>;
+		qcom,s2-timer = <1000>;
+		qcom,s2-type = <1>;
+	};
+};
+
+&pm660_vadc {
+	chan@50 {
+		label = "backlight_therm";
+		reg = <0x50>;
+		qcom,decimation = <2>;
+		qcom,pre-div-channel-scaling = <0>;
+		qcom,calibration-type = "ratiometric";
+		qcom,scale-function = <2>;
+		qcom,hw-settle-time = <2>;
+		qcom,fast-avg-setup = <0>;
+		qcom,vadc-thermal-node;
+	};
+};
+
+&rpm_bus {
+	rpm-regulator-ldoa16 {
+		status = "okay";
+		pm660_l16: regulator-l16 {
+			regulator-min-microvolt = <2800000>;
+			regulator-max-microvolt = <2800000>;
+			status = "okay";
+			regulator-always-on;
+		};
+	};
+};
+
+&pm660l_l3 {
+	regulator-always-on;
+};
