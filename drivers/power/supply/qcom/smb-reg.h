@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /* Copyright (c) 2016-2020, The Linux Foundation. All rights reserved.
  */
+/* Copyright (C) 2019 XiaoMi, Inc. */
 
 #ifndef __SMB2_CHARGER_REG_H
 #define __SMB2_CHARGER_REG_H
@@ -594,6 +595,10 @@ enum {
 	HVDCP_PULSE_COUNT_MAX_QC2_12V,
 	HVDCP_PULSE_COUNT_MAX_QC2_INVALID
 };
+
+#define PULSE_COUNT_QC2P0_12V			BIT(7)
+#define PULSE_COUNT_QC2P0_9V			BIT(6)
+#define PULSE_COUNT_QC3P0_MASK			GENMASK(5, 0)
 
 #define USBIN_ADAPTER_ALLOW_CFG_REG		(USBIN_BASE + 0x60)
 #define USBIN_ADAPTER_ALLOW_MASK		GENMASK(3, 0)
