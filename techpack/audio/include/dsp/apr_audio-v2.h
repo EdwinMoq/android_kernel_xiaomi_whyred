@@ -2,7 +2,7 @@
 /*
  * Copyright (c) 2012-2021, The Linux Foundation. All rights reserved.
  */
-
+/* Copyright (C) 2019 XiaoMi, Inc. */
 
 #ifndef _APR_AUDIO_V2_H_
 #define _APR_AUDIO_V2_H_
@@ -2078,6 +2078,30 @@ struct afe_port_cmd_set_param_v3 {
  * which gets/sets loopback gain of a port to an Rx port.
  * The Tx port ID of the loopback is part of the set_param command.
  */
+
+struct afe_port_param_data_v2 {
+	u32 module_id;
+/* ID of the module to be configured.
+ * Supported values: Valid module ID
+ */
+
+u32 param_id;
+/* ID of the parameter corresponding to the supported parameters
+ * for the module ID.
+ * Supported values: Valid parameter ID
+ */
+
+u16 param_size;
+/* Actual size of the data for the
+ * module_id/param_id pair. The size is a
+ * multiple of four bytes.
+ * Supported values: > 0
+ */
+
+u16 reserved;
+/* This field must be set to zero.
+ */
+} __packed;
 
 struct afe_loopback_gain_per_path_param {
 	u16                  rx_port_id;
@@ -12297,6 +12321,13 @@ struct afe_digital_clk_cfg {
 
 /* This field must be set to zero. */
 	u16                  reserved;
+} __packed;
+
+struct afe_lpass_digital_clk_config_command {
+	struct apr_hdr			 hdr;
+	struct afe_port_cmd_set_param_v2 param;
+	struct afe_port_param_data_v2    pdata;
+	struct afe_digital_clk_cfg clk_cfg;
 } __packed;
 
 /*

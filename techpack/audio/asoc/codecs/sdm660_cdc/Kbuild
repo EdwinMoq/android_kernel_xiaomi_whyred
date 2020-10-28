@@ -73,10 +73,20 @@ ifdef CONFIG_SND_SOC_DIGITAL_CDC
 	DIGITAL_CDC_OBJS += msm-digital-cdc.o
 	DIGITAL_CDC_OBJS += msm-digital-cdc-regmap.o
 endif
+
 ifdef CONFIG_SND_SOC_DIGITAL_CDC_LEGACY
 	DIGITAL_CDC_OBJS += msm-digital-cdc-legacy.o
 	DIGITAL_CDC_OBJS += msm-digital-cdc-legacy-regmap.o
 endif
+
+ifdef CONFIG_SND_SOC_TAS2557
+	TAS2557_OBJS += tas2557-codec.o
+	TAS2557_OBJS += tas2557-core.o
+	TAS2557_OBJS += tas2557-misc.o
+	TAS2557_OBJS += tas2557-regmap.o
+	TAS2557_OBJS += tiload.o
+endif
+
 LINUX_INC +=	-Iinclude/linux
 
 INCS +=		$(COMMON_INC) \
@@ -131,3 +141,6 @@ digital_cdc_dlkm-y := $(DIGITAL_CDC_OBJS)
 
 obj-$(CONFIG_SND_SOC_DIGITAL_CDC_LEGACY) += digital_cdc_dlkm.o
 digital_cdc_dlkm-y := $(DIGITAL_CDC_OBJS)
+
+obj-$(CONFIG_SND_SOC_TAS2557) += tas2557_dlkm.o
+tas2557_dlkm-y := $(TAS2557_OBJS)

@@ -160,5 +160,13 @@ config WCD_DSP_GLINK
 	tristate "WCD_DSP_GLINK"
 config WSA_MACRO
 	tristate "WSA_MACRO"
+config SND_SOC_TAS2557
+	tristate "Texas Instruments TAS2557 SmartAmp(R)"
+config TAS2557_REGMAP
+	bool "Use of RegMap API"
+config TAS2557_CODEC
+	bool "Codec Driver support"
+config TAS2557_MISC
+	bool "Misc Driver support"
 
 endmenu
