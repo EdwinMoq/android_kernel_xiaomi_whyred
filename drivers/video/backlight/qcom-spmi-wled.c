@@ -459,7 +459,7 @@ static int wled5_set_brightness(struct wled *wled, u16 brightness)
 static int wled4_set_brightness(struct wled *wled, u16 brightness)
 {
 	int rc, i;
-	u16 low_limit = wled->max_brightness * 4 / 1000;
+	u16 low_limit = wled->max_brightness * 1 / 1000;
 	u8 string_cfg = wled->cfg.string_cfg;
 	u8 v[2];
 
@@ -685,10 +685,6 @@ static int wled_get_ovp_fault_status(struct wled *wled, bool *fault_set)
 	else if (is_wled5(wled) && (fault_sts & (WLED_CTRL_OVP_FAULT_BIT |
 					WLED5_CTRL_OVP_PRE_ALARM_BIT)))
 		*fault_set = true;
-
-	if (*fault_set)
-		pr_debug("WLED OVP fault detected, int_rt_sts=0x%x fault_sts=0x%x\n",
-			int_rt_sts, fault_sts);
 
 	return rc;
 }
