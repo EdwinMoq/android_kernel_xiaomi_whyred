@@ -2,6 +2,8 @@
 /*
  * Copyright (c) 2015-2018, 2020-2021, The Linux Foundation. All rights reserved.
  */
+/* Copyright (C) 2019 XiaoMi, Inc. */
+
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/platform_device.h>
@@ -52,7 +54,7 @@
 #define SPK_PMD 2
 #define SPK_PMU 3
 
-#define MICBIAS_DEFAULT_VAL 1800000
+#define MICBIAS_DEFAULT_VAL 2600000
 #define MICBIAS_MIN_VAL 1600000
 #define MICBIAS_STEP_SIZE 50000
 
@@ -3389,6 +3391,8 @@ static int msm_anlg_cdc_codec_enable_ear_pa(struct snd_soc_dapm_widget *w,
 				snd_soc_dapm_to_component(w->dapm);
 	struct sdm660_cdc_priv *sdm660_cdc =
 				snd_soc_component_get_drvdata(component);
+
+	pr_info("Macle msm_anlg_cdc_codec_enable_ear_pa event = %d\n", event);
 
 	switch (event) {
 	case SND_SOC_DAPM_PRE_PMU:
