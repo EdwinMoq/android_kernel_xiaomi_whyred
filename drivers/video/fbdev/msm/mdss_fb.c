@@ -16,6 +16,8 @@
 #include <linux/device.h>
 #include <linux/dma-mapping.h>
 #include <linux/dma-buf.h>
+#include <linux/mdss_io_util.h>
+#include <linux/wakelock.h>
 #include <linux/fb.h>
 #include <linux/init.h>
 #include <linux/ioport.h>
@@ -122,6 +124,35 @@ static inline void __user *to_user_ptr(uint64_t address)
 static inline uint64_t __user to_user_u64(void *ptr)
 {
 	return (uint64_t)((uintptr_t)ptr);
+}
+
+#define WAIT_RESUME_TIMEOUT 200
+static struct fb_info *prim_fbi;
+static struct delayed_work prim_panel_work;
+static atomic_t prim_panel_is_on;
+static struct wake_lock prim_panel_wakelock;
+static void prim_panel_off_delayed_work(struct work_struct *work)
+{
+#ifdef CONFIG_FRAMEBUFFER_CONSOLE
+	console_lock();
+#endif
+	if (!lock_fb_info(prim_fbi)) {
+#ifdef CONFIG_FRAMEBUFFER_CONSOLE
+		console_unlock();
+#endif
+		return;
+	}
+
+	if (atomic_read(&prim_panel_is_on)) {
+		fb_blank(prim_fbi, FB_BLANK_POWERDOWN);
+		atomic_set(&prim_panel_is_on, false);
+		wake_unlock(&prim_panel_wakelock);
+	}
+
+	unlock_fb_info(prim_fbi);
+#ifdef CONFIG_FRAMEBUFFER_CONSOLE
+	console_unlock();
+#endif
 }
 
 void mdss_fb_no_update_notify_timer_cb(struct timer_list *t)
@@ -1432,6 +1463,12 @@ static int mdss_fb_remove(struct platform_device *pdev)
 	if (!mfd)
 		return -ENODEV;
 
+	if (mfd->panel_info && mfd->panel_info->is_prim_panel) {
+		atomic_set(&prim_panel_is_on, false);
+		cancel_delayed_work_sync(&prim_panel_work);
+		wake_lock_destroy(&prim_panel_wakelock);
+	}
+
 	mdss_fb_remove_sysfs(mfd);
 
 	pm_runtime_disable(mfd->fbi->dev);
@@ -1609,6 +1646,30 @@ static int mdss_fb_resume(struct platform_device *pdev)
 #endif
 
 #ifdef CONFIG_PM_SLEEP
+static int mdss_fb_pm_prepare(struct device *dev)
+{
+	struct msm_fb_data_type *mfd = dev_get_drvdata(dev);
+
+	if (!mfd)
+		return -ENODEV;
+	if (mfd->panel_info->is_prim_panel)
+		atomic_inc(&mfd->resume_pending);
+	return 0;
+}
+
+static void mdss_fb_pm_complete(struct device *dev)
+{
+	struct msm_fb_data_type *mfd = dev_get_drvdata(dev);
+
+	if (!mfd)
+		return;
+	if (mfd->panel_info->is_prim_panel) {
+		atomic_set(&mfd->resume_pending, 0);
+		wake_up_all(&mfd->resume_wait_q);
+	}
+	return;
+}
+
 static int mdss_fb_pm_suspend(struct device *dev)
 {
 	struct msm_fb_data_type *mfd = dev_get_drvdata(dev);
@@ -1664,6 +1725,8 @@ static int mdss_fb_pm_resume(struct device *dev)
 #endif
 
 static const struct dev_pm_ops mdss_fb_pm_ops = {
+	.prepare = mdss_fb_pm_prepare,
+	.complete = mdss_fb_pm_complete,
 	SET_SYSTEM_SLEEP_PM_OPS(mdss_fb_pm_suspend, mdss_fb_pm_resume)
 };
 
@@ -2097,6 +2160,14 @@ static int mdss_fb_blank(int blank_mode, struct fb_info *info)
 	int ret;
 	struct mdss_panel_data *pdata;
 	struct msm_fb_data_type *mfd = (struct msm_fb_data_type *)info->par;
+
+	if ((info == prim_fbi) && (blank_mode == FB_BLANK_UNBLANK) &&
+		atomic_read(&prim_panel_is_on)) {
+		atomic_set(&prim_panel_is_on, false);
+		wake_unlock(&prim_panel_wakelock);
+		cancel_delayed_work_sync(&prim_panel_work);
+		return 0;
+	}
 
 	ret = mdss_fb_pan_idle(mfd);
 	if (ret) {
@@ -2729,6 +2800,7 @@ static int mdss_fb_register(struct msm_fb_data_type *mfd)
 	atomic_set(&mfd->commits_pending, 0);
 	atomic_set(&mfd->ioctl_ref_cnt, 0);
 	atomic_set(&mfd->kickoff_pending, 0);
+	atomic_set(&mfd->resume_pending, 0);
 
 	timer_setup(&mfd->no_update.timer, mdss_fb_no_update_notify_timer_cb,
 			 (unsigned long)mfd);
@@ -2743,6 +2815,7 @@ static int mdss_fb_register(struct msm_fb_data_type *mfd)
 	init_waitqueue_head(&mfd->idle_wait_q);
 	init_waitqueue_head(&mfd->ioctl_q);
 	init_waitqueue_head(&mfd->kickoff_wait_q);
+	init_waitqueue_head(&mfd->resume_wait_q);
 
 	ret = fb_alloc_cmap(&fbi->cmap, 256, 0);
 	if (ret)
@@ -2760,6 +2833,13 @@ static int mdss_fb_register(struct msm_fb_data_type *mfd)
 	mdss_panel_debugfs_init(panel_info, panel_name);
 	pr_info("FrameBuffer[%d] %dx%d registered successfully!\n", mfd->index,
 					fbi->var.xres, fbi->var.yres);
+
+	if (panel_info->is_prim_panel) {
+		prim_fbi = fbi;
+		atomic_set(&prim_panel_is_on, false);
+		INIT_DELAYED_WORK(&prim_panel_work, prim_panel_off_delayed_work);
+		wake_lock_init(&prim_panel_wakelock, WAKE_LOCK_SUSPEND, "prim_panel_wakelock");
+	}
 
 	return 0;
 }
@@ -5274,6 +5354,72 @@ void mdss_fb_report_panel_dead(struct msm_fb_data_type *mfd)
 	pr_err("Panel has gone bad, sending uevent - %s\n", envp[0]);
 }
 
+/*
++ * mdss_prim_panel_fb_unblank() - Unblank primary panel FB
++ * @timeout : >0 blank primary panel FB after timeout (ms)
++ */
+int mdss_prim_panel_fb_unblank(int timeout)
+{
+	int ret = 0;
+	struct msm_fb_data_type *mfd = NULL;
+        printk("prim_fbi 00\n");
+	if (prim_fbi) {
+		printk("prim_fbi 01\n");
+		mfd = (struct msm_fb_data_type *)prim_fbi->par;
+		ret = wait_event_timeout(mfd->resume_wait_q,
+				!atomic_read(&mfd->resume_pending),
+				msecs_to_jiffies(WAIT_RESUME_TIMEOUT));
+		if (!ret) {
+			pr_info("Primary fb resume timeout\n");
+			return -ETIMEDOUT;
+		}
+		printk("prim_fbi 03\n");
+#ifdef CONFIG_FRAMEBUFFER_CONSOLE
+		printk("prim_fbi 04\n");
+		console_lock();
+#endif
+		if (!lock_fb_info(prim_fbi)) {
+#ifdef CONFIG_FRAMEBUFFER_CONSOLE
+		printk("prim_fbi 05\n");
+			console_unlock();
+#endif
+			return -ENODEV;
+		}
+		if (prim_fbi->blank == FB_BLANK_UNBLANK) {
+		printk("prim_fbi 06\n");
+			unlock_fb_info(prim_fbi);
+#ifdef CONFIG_FRAMEBUFFER_CONSOLE
+		printk("prim_fbi 07\n");
+			console_unlock();
+#endif
+		printk("prim_fbi 08\n");
+			return 0;
+		}
+		printk("prim_fbi 09\n");
+		wake_lock(&prim_panel_wakelock);
+		printk("fb_blank 01\n");
+		ret = fb_blank(prim_fbi, FB_BLANK_UNBLANK);
+		if (!ret) {
+			atomic_set(&prim_panel_is_on, true);
+			if (timeout > 0)
+				schedule_delayed_work(&prim_panel_work, msecs_to_jiffies(timeout));
+			else
+				wake_unlock(&prim_panel_wakelock);
+		} else
+			wake_unlock(&prim_panel_wakelock);
+		unlock_fb_info(prim_fbi);
+#ifdef CONFIG_FRAMEBUFFER_CONSOLE
+		printk("prim_fbi 10\n");
+		console_unlock();
+#endif
+		printk("return ret 01\n");
+		return ret;
+	}
+
+		printk("prim_fbi 11\n");
+	pr_err("primary panel is not existed\n");
+	return -EINVAL;
+}
 
 /*
  * mdss_fb_calc_fps() - Calculates fps value.
