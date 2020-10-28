@@ -1,5 +1,6 @@
 /*
  *  linux/init/main.c
+ *  Copyright (C) 2019 XiaoMi, Inc.
  *
  *  Copyright (C) 1991, 1992  Linus Torvalds
  *
@@ -556,10 +557,14 @@ static void __init mm_init(void)
 	pti_init();
 }
 
+int fpsensor=1;
+bool is_poweroff_charge = false;
+
 asmlinkage __visible void __init start_kernel(void)
 {
 	char *command_line;
 	char *after_dashes;
+	char *p=NULL;
 
 	set_task_stack_end_magic(&init_task);
 	smp_setup_processor_id();
@@ -589,6 +594,22 @@ asmlinkage __visible void __init start_kernel(void)
 	page_alloc_init();
 
 	pr_notice("Kernel command line: %s\n", boot_command_line);
+
+	p = NULL;
+	p= strstr(boot_command_line,"androidboot.fpsensor=fpc");
+	if(p){
+		fpsensor = 1;
+	}else{
+		fpsensor = 2;
+	}
+
+	p= NULL;
+	p= strstr(boot_command_line,"androidboot.mode=charger");
+	if(p)
+	{
+		is_poweroff_charge = true;
+	}
+
 	/* parameters may set static keys */
 	jump_label_init();
 	parse_early_param();
