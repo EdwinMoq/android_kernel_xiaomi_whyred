@@ -26,6 +26,7 @@
 #include <linux/workqueue.h>
 #include <linux/usb/ch9.h>
 #include <linux/pm_runtime.h>
+#include <linux/android_kabi.h>
 
 #define UDC_TRACE_STR_MAX	512
 
@@ -547,6 +548,11 @@ struct usb_gadget {
 	bool				l1_supported;
 	bool				is_chipidea;
 	bool				self_powered;
+
+	ANDROID_KABI_RESERVE(1);
+	ANDROID_KABI_RESERVE(2);
+	ANDROID_KABI_RESERVE(3);
+	ANDROID_KABI_RESERVE(4);
 };
 #define work_to_gadget(w)	(container_of((w), struct usb_gadget, work))
 

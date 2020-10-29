@@ -133,7 +133,7 @@ static int ipa2_smmu_map_peer_bam(unsigned long dev)
 	phys_addr_t base;
 	u32 size;
 	struct iommu_domain *smmu_domain;
-	struct ipa_smmu_cb_ctx *cb = ipa2_get_smmu_ctx(IPA_SMMU_CB_AP);
+	struct ipa_smmu_cb_ctx *cb = ipa2_get_smmu_ctx();
 
 	if (!ipa_ctx->smmu_s1_bypass) {
 		if (ipa_ctx->peer_bam_map_cnt == 0) {
@@ -243,7 +243,7 @@ static int ipa_connect_allocate_fifo(const struct ipa_connect_params *in,
 			result = sps_setup_bam2bam_fifo(mem_buff_ptr, ofst,
 				fifo_size, 1);
 			WARN_ON(result);
-			*fifo_in_pipe_mem_ptr = 1;
+			*fifo_in_pipe_mem_ptr = true;
 			dma_addr = mem_buff_ptr->phys_base;
 			*fifo_pipe_mem_ofst_ptr = ofst;
 		}
@@ -388,7 +388,7 @@ int ipa2_connect(const struct ipa_connect_params *in,
 	} else {
 		IPADBG("client allocated DESC FIFO\n");
 		ep->connect.desc = in->desc;
-		ep->desc_fifo_client_allocated = 1;
+		ep->desc_fifo_client_allocated = true;
 	}
 	IPADBG("Descriptor FIFO pa=%pa, size=%d\n", &ep->connect.desc.phys_base,
 	       ep->connect.desc.size);
@@ -405,7 +405,7 @@ int ipa2_connect(const struct ipa_connect_params *in,
 	} else {
 		IPADBG("client allocated DATA FIFO\n");
 		ep->connect.data = in->data;
-		ep->data_fifo_client_allocated = 1;
+		ep->data_fifo_client_allocated = true;
 	}
 	IPADBG("Data FIFO pa=%pa, size=%d\n", &ep->connect.data.phys_base,
 	       ep->connect.data.size);
@@ -529,7 +529,7 @@ static int ipa2_smmu_unmap_peer_bam(unsigned long dev)
 {
 	size_t len;
 	struct iommu_domain *smmu_domain;
-	struct ipa_smmu_cb_ctx *cb = ipa2_get_smmu_ctx(IPA_SMMU_CB_AP);
+	struct ipa_smmu_cb_ctx *cb = ipa2_get_smmu_ctx();
 
 	if (!ipa_ctx->smmu_s1_bypass) {
 		WARN_ON(dev != ipa_ctx->peer_bam_dev);

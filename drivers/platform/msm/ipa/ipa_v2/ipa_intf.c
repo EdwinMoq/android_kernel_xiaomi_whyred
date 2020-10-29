@@ -5,7 +5,6 @@
 
 #include <linux/fs.h>
 #include <linux/sched.h>
-#include <linux/sched/signal.h>
 #include "ipa_i.h"
 #include <linux/msm_ipa.h>
 
@@ -116,7 +115,7 @@ int ipa2_register_intf_ext(const char *name, const struct ipa_tx_intf *tx,
 	if (tx) {
 		intf->num_tx_props = tx->num_props;
 		len = tx->num_props * sizeof(struct ipa_ioc_tx_intf_prop);
-		intf->tx = kzalloc(len, GFP_KERNEL);
+		intf->tx = kmemdup(tx->prop, len, GFP_KERNEL);
 		if (intf->tx == NULL) {
 			IPAERR("fail to alloc 0x%x bytes\n", len);
 			kfree(intf);
@@ -128,7 +127,7 @@ int ipa2_register_intf_ext(const char *name, const struct ipa_tx_intf *tx,
 	if (rx) {
 		intf->num_rx_props = rx->num_props;
 		len = rx->num_props * sizeof(struct ipa_ioc_rx_intf_prop);
-		intf->rx = kzalloc(len, GFP_KERNEL);
+		intf->rx = kmemdup(rx->prop, len, GFP_KERNEL);
 		if (intf->rx == NULL) {
 			IPAERR("fail to alloc 0x%x bytes\n", len);
 			kfree(intf->tx);
@@ -141,7 +140,7 @@ int ipa2_register_intf_ext(const char *name, const struct ipa_tx_intf *tx,
 	if (ext) {
 		intf->num_ext_props = ext->num_props;
 		len = ext->num_props * sizeof(struct ipa_ioc_ext_intf_prop);
-		intf->ext = kzalloc(len, GFP_KERNEL);
+		intf->ext = kmemdup(ext->prop, len, GFP_KERNEL);
 		if (intf->ext == NULL) {
 			IPAERR("fail to alloc 0x%x bytes\n", len);
 			kfree(intf->rx);
@@ -408,14 +407,16 @@ static int wlan_msg_process(struct ipa_msg_meta *meta, void *buff)
 		msg_dup = kzalloc(sizeof(struct ipa_push_msg), GFP_KERNEL);
 		if (msg_dup == NULL) {
 			IPAERR("fail to alloc ipa_msg container\n");
+			mutex_unlock(&ipa_ctx->msg_wlan_client_lock);
 			return -ENOMEM;
 		}
 		msg_dup->meta = *meta;
 		if (meta->msg_len > 0 && buff) {
-			data_dup = kmalloc(meta->msg_len, GFP_KERNEL);
+			data_dup = kmemdup(buff, meta->msg_len, GFP_KERNEL);
 			if (data_dup == NULL) {
 				IPAERR("fail to alloc data_dup container\n");
 				kfree(msg_dup);
+				mutex_unlock(&ipa_ctx->msg_wlan_client_lock);
 				return -ENOMEM;
 			}
 			memcpy(data_dup, buff, meta->msg_len);
@@ -522,13 +523,12 @@ int ipa2_send_msg(struct ipa_msg_meta *meta, void *buff,
 
 	msg->meta = *meta;
 	if (meta->msg_len > 0 && buff) {
-		data = kmalloc(meta->msg_len, GFP_KERNEL);
+		data = kmemdup(buff, meta->msg_len, GFP_KERNEL);
 		if (data == NULL) {
 			IPAERR("fail to alloc data container\n");
 			kfree(msg);
 			return -ENOMEM;
 		}
-		memcpy(data, buff, meta->msg_len);
 		msg->buff = data;
 		msg->callback = ipa2_send_msg_free;
 	}
@@ -596,14 +596,13 @@ int ipa2_resend_wlan_msg(void)
 			return -ENOMEM;
 		}
 		msg->meta = entry->meta;
-		data = kmalloc(entry->meta.msg_len, GFP_KERNEL);
+		data = kmemdup(entry->buff, entry->meta.msg_len, GFP_KERNEL);
 		if (data == NULL) {
 			IPAERR("fail to alloc data container\n");
 			kfree(msg);
 			mutex_unlock(&ipa_ctx->msg_wlan_client_lock);
 			return -ENOMEM;
 		}
-		memcpy(data, entry->buff, entry->meta.msg_len);
 		msg->buff = data;
 		msg->callback = ipa2_send_msg_free;
 		mutex_lock(&ipa_ctx->msg_lock);

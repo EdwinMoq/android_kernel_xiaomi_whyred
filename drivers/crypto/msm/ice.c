@@ -1537,7 +1537,6 @@ static struct qcom_ice_variant_ops qcom_ice_ops = {
       .debug            = qcom_ice_debug,
 };
 
-
 struct qcom_ice_variant_ops *qcom_ice_get_variant_ops(struct device_node *node)
 {
 	return &qcom_ice_ops;

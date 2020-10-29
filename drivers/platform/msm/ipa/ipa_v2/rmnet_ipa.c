@@ -71,7 +71,7 @@ static atomic_t is_initialized;
 static atomic_t is_ssr;
 static void *subsys_notify_handle;
 
-static u32 apps_to_ipa_hdl, ipa_to_apps_hdl; /* get handler from ipa */
+u32 apps_to_ipa_hdl, ipa_to_apps_hdl; /* get handler from ipa */
 static struct mutex ipa_to_apps_pipe_handle_guard;
 static struct mutex add_mux_channel_lock;
 static int wwan_add_ul_flt_rule_to_ipa(void);
@@ -430,44 +430,10 @@ int copy_ul_filter_rule_to_ipa(struct ipa_install_fltr_rule_req_msg_v01
 	     ipa_qmi_ctx->q6_ul_filter_rule[i].filter_hdl =
 		     UL_FILTER_RULE_HANDLE_START + i;
 	     rule_hdl[i] = ipa_qmi_ctx->q6_ul_filter_rule[i].filter_hdl;
-		switch (rule_req->filter_spec_list[i].ip_type) {
-		case QMI_IPA_IP_TYPE_V4_V01:
-			ipa_qmi_ctx->q6_ul_filter_rule[i].ip = IPA_IP_v4;
-			break;
-
-		case QMI_IPA_IP_TYPE_V6_V01:
-			ipa_qmi_ctx->q6_ul_filter_rule[i].ip = IPA_IP_v6;
-			break;
-
-		case QMI_IPA_IP_TYPE_V4V6_V01:
-			/* Fall through */
-		default:
-			ipa_qmi_ctx->q6_ul_filter_rule[i].ip = IPA_IP_MAX;
-			break;
-		}
-
-		switch (rule_req->filter_spec_list[i].filter_action) {
-		case QMI_IPA_FILTER_ACTION_SRC_NAT_V01:
-			ipa_qmi_ctx->q6_ul_filter_rule[i].action =
-							IPA_PASS_TO_SRC_NAT;
-			break;
-		case QMI_IPA_FILTER_ACTION_DST_NAT_V01:
-			ipa_qmi_ctx->q6_ul_filter_rule[i].action =
-							 IPA_PASS_TO_DST_NAT;
-			break;
-
-		case QMI_IPA_FILTER_ACTION_ROUTING_V01:
-			ipa_qmi_ctx->q6_ul_filter_rule[i].action =
-							 IPA_PASS_TO_ROUTING;
-			break;
-
-		case QMI_IPA_FILTER_ACTION_EXCEPTION_V01:
-			/* Fall through */
-		default:
-			ipa_qmi_ctx->q6_ul_filter_rule[i].action =
-							IPA_PASS_TO_EXCEPTION;
-			break;
-		}
+	     ipa_qmi_ctx->q6_ul_filter_rule[i].ip =
+		     rule_req->filter_spec_list[i].ip_type;
+	     ipa_qmi_ctx->q6_ul_filter_rule[i].action =
+		     rule_req->filter_spec_list[i].filter_action;
 	if (rule_req->filter_spec_list[i].is_routing_table_index_valid
 		     == true)
 		ipa_qmi_ctx->q6_ul_filter_rule[i].rt_tbl_idx =
@@ -634,8 +600,7 @@ static int wwan_add_ul_flt_rule_to_ipa(void)
 	if (!param)
 		return -ENOMEM;
 
-	req = (struct ipa_fltr_installed_notif_req_msg_v01 *)
-		kzalloc(sizeof(struct ipa_fltr_installed_notif_req_msg_v01),
+	req = kzalloc(sizeof(struct ipa_fltr_installed_notif_req_msg_v01),
 			GFP_KERNEL);
 	if (!req) {
 		kfree(param);
@@ -915,7 +880,7 @@ int wwan_update_mux_channel_prop(void)
 	/* install UL filter rules */
 	if (egress_set) {
 		if (ipa_qmi_ctx &&
-			ipa_qmi_ctx->modem_cfg_emb_pipe_flt == false) {
+			!ipa_qmi_ctx->modem_cfg_emb_pipe_flt) {
 			IPAWANDBG("setup UL filter rules\n");
 			if (a7_ul_flt_set) {
 				IPAWANDBG("del previous UL filter rules\n");
@@ -1264,6 +1229,7 @@ static int handle_ingress_format(struct net_device *dev,
 			struct rmnet_ioctl_extended_s *in)
 {
 	int ret = 0;
+	struct rmnet_phys_ep_conf_s *ep_cfg;
 
 	IPAWANDBG("Get RMNET_IOCTL_SET_INGRESS_DATA_FORMAT\n");
 	if ((in->u.data) & RMNET_IOCTL_INGRESS_FORMAT_CHECKSUM)
@@ -1284,6 +1250,14 @@ static int handle_ingress_format(struct net_device *dev,
 				in->u.ingress_format.agg_size;
 			ipa_to_apps_ep_cfg.ipa_ep_cfg.aggr.aggr_pkt_limit =
 				in->u.ingress_format.agg_count;
+
+			if (ipa_rmnet_res.ipa_napi_enable) {
+				ipa_to_apps_ep_cfg.recycle_enabled = true;
+				ep_cfg = (struct rmnet_phys_ep_conf_s *)
+				   rcu_dereference(dev->rx_handler_data);
+				ep_cfg->recycle = ipa_recycle_wan_skb;
+				pr_info("Wan Recycle Enabled\n");
+			}
 		}
 	}
 
@@ -1421,7 +1395,7 @@ static int ipa_wwan_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 			return -EPERM;
 		IPAWANDBG("get ioctl: RMNET_IOCTL_EXTENDED\n");
 		if (copy_from_user(&extend_ioctl_data,
-			(const void __user *)ifr->ifr_ifru.ifru_data,
+			(u8 *)ifr->ifr_ifru.ifru_data,
 			sizeof(struct rmnet_ioctl_extended_s))) {
 			IPAWANERR("failed to copy extended ioctl data\n");
 			rc = -EFAULT;
@@ -1435,7 +1409,7 @@ static int ipa_wwan_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 				(RMNET_IOCTL_FEAT_NOTIFY_MUX_CHANNEL |
 				RMNET_IOCTL_FEAT_SET_EGRESS_DATA_FORMAT |
 				RMNET_IOCTL_FEAT_SET_INGRESS_DATA_FORMAT);
-			if (copy_to_user((void __user *)ifr->ifr_ifru.ifru_data,
+			if (copy_to_user((u8 *)ifr->ifr_ifru.ifru_data,
 				&extend_ioctl_data,
 				sizeof(struct rmnet_ioctl_extended_s)))
 				rc = -EFAULT;
@@ -1449,7 +1423,7 @@ static int ipa_wwan_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 		/*  Get MRU  */
 		case RMNET_IOCTL_GET_MRU:
 			extend_ioctl_data.u.data = mru;
-			if (copy_to_user((void __user *)ifr->ifr_ifru.ifru_data,
+			if (copy_to_user((u8 *)ifr->ifr_ifru.ifru_data,
 				&extend_ioctl_data,
 				sizeof(struct rmnet_ioctl_extended_s)))
 				rc = -EFAULT;
@@ -1458,7 +1432,7 @@ static int ipa_wwan_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 		case RMNET_IOCTL_GET_SG_SUPPORT:
 			extend_ioctl_data.u.data =
 				ipa_rmnet_res.ipa_advertise_sg_support;
-			if (copy_to_user((void __user *)ifr->ifr_ifru.ifru_data,
+			if (copy_to_user((u8 *)ifr->ifr_ifru.ifru_data,
 				&extend_ioctl_data,
 				sizeof(struct rmnet_ioctl_extended_s)))
 				rc = -EFAULT;
@@ -1467,12 +1441,12 @@ static int ipa_wwan_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 		case RMNET_IOCTL_GET_EPID:
 			IPAWANDBG("get ioctl: RMNET_IOCTL_GET_EPID\n");
 			extend_ioctl_data.u.data = epid;
-			if (copy_to_user((void __user *)ifr->ifr_ifru.ifru_data,
+			if (copy_to_user((u8 *)ifr->ifr_ifru.ifru_data,
 				&extend_ioctl_data,
 				sizeof(struct rmnet_ioctl_extended_s)))
 				rc = -EFAULT;
 			if (copy_from_user(&extend_ioctl_data,
-				(const void __user *)ifr->ifr_ifru.ifru_data,
+				(u8 *)ifr->ifr_ifru.ifru_data,
 				sizeof(struct rmnet_ioctl_extended_s))) {
 				IPAWANERR("copy extended ioctl data failed\n");
 				rc = -EFAULT;
@@ -1488,12 +1462,12 @@ static int ipa_wwan_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 			ipa2_get_ep_mapping(IPA_CLIENT_APPS_LAN_WAN_PROD);
 			extend_ioctl_data.u.ipa_ep_pair.producer_pipe_num =
 			ipa2_get_ep_mapping(IPA_CLIENT_APPS_WAN_CONS);
-			if (copy_to_user((void __user *)ifr->ifr_ifru.ifru_data,
+			if (copy_to_user((u8 *)ifr->ifr_ifru.ifru_data,
 				&extend_ioctl_data,
 				sizeof(struct rmnet_ioctl_extended_s)))
 				rc = -EFAULT;
 			if (copy_from_user(&extend_ioctl_data,
-				(const void __user *)ifr->ifr_ifru.ifru_data,
+				(u8 *)ifr->ifr_ifru.ifru_data,
 				sizeof(struct rmnet_ioctl_extended_s))) {
 				IPAWANERR("copy extended ioctl data failed\n");
 				rc = -EFAULT;
@@ -1508,7 +1482,7 @@ static int ipa_wwan_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 			memcpy(&extend_ioctl_data.u.if_name,
 						ipa_netdevs[0]->name, IFNAMSIZ);
 			extend_ioctl_data.u.if_name[IFNAMSIZ - 1] = '\0';
-			if (copy_to_user((void __user *)ifr->ifr_ifru.ifru_data,
+			if (copy_to_user((u8 *)ifr->ifr_ifru.ifru_data,
 					&extend_ioctl_data,
 					sizeof(struct rmnet_ioctl_extended_s)))
 				rc = -EFAULT;
@@ -1610,8 +1584,7 @@ static int ipa_wwan_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 			if (num_q6_rule != 0) {
 				/* already got Q6 UL filter rules*/
 				if (ipa_qmi_ctx &&
-					ipa_qmi_ctx->modem_cfg_emb_pipe_flt
-					== false) {
+					!ipa_qmi_ctx->modem_cfg_emb_pipe_flt) {
 					/* protect num_q6_rule */
 					mutex_lock(&add_mux_channel_lock);
 					rc = wwan_add_ul_flt_rule_to_ipa();
@@ -1704,8 +1677,8 @@ static const struct net_device_ops ipa_wwan_ops_ip = {
 	.ndo_tx_timeout = ipa_wwan_tx_timeout,
 	.ndo_do_ioctl = ipa_wwan_ioctl,
 	.ndo_change_mtu = ipa_wwan_change_mtu,
-	.ndo_set_mac_address = NULL,
-	.ndo_validate_addr = NULL,
+	.ndo_set_mac_address = 0,
+	.ndo_validate_addr = 0,
 };
 
 /**
@@ -1722,7 +1695,7 @@ static void ipa_wwan_setup(struct net_device *dev)
 	dev->netdev_ops = &ipa_wwan_ops_ip;
 	ether_setup(dev);
 	/* set this after calling ether_setup */
-	dev->header_ops = NULL;  /* No header */
+	dev->header_ops = 0;  /* No header */
 	dev->type = ARPHRD_RAWIP;
 	dev->hard_header_len = 0;
 	dev->mtu = WWAN_DATA_LEN;
@@ -1854,7 +1827,7 @@ create_rsrc_err1:
 	return result;
 }
 
-static void q6_deinitialize_rm(void)
+void q6_deinitialize_rm(void)
 {
 	int ret;
 
@@ -2245,7 +2218,7 @@ static int ipa_wwan_remove(struct platform_device *pdev)
 	ipa_del_dflt_wan_rt_tables();
 	ipa_del_a7_qmap_hdr();
 	ipa_del_mux_qmap_hdrs();
-	if (ipa_qmi_ctx && ipa_qmi_ctx->modem_cfg_emb_pipe_flt == false)
+	if (ipa_qmi_ctx && !ipa_qmi_ctx->modem_cfg_emb_pipe_flt)
 		wwan_del_ul_flt_rule_to_ipa();
 	ipa_cleanup_deregister_intf();
 	atomic_set(&is_initialized, 0);
@@ -2341,7 +2314,6 @@ static const struct dev_pm_ops rmnet_ipa_pm_ops = {
 static struct platform_driver rmnet_ipa_driver = {
 	.driver = {
 		.name = "rmnet_ipa",
-		.owner = THIS_MODULE,
 		.pm = &rmnet_ipa_pm_ops,
 		.of_match_table = rmnet_ipa_dt_match,
 	},
@@ -2470,7 +2442,7 @@ static void rmnet_ipa_get_stats_and_update(bool reset)
 	memset(resp, 0, sizeof(struct ipa_get_data_stats_resp_msg_v01));
 
 	req.ipa_stats_type = QMI_IPA_STATS_TYPE_PIPE_V01;
-	if (reset == true) {
+	if (reset) {
 		req.reset_stats_valid = true;
 		req.reset_stats = true;
 		IPAWANERR("Get the latest pipe-stats and reset it\n");
@@ -2831,7 +2803,7 @@ static int rmnet_ipa_query_tethering_stats_wifi(
 	return rc;
 }
 
-static int rmnet_ipa_query_tethering_stats_modem(
+int rmnet_ipa_query_tethering_stats_modem(
 	struct wan_ioctl_query_tether_stats *data,
 	bool reset
 )
@@ -3115,7 +3087,7 @@ void ipa_broadcast_quota_reach_ind(u32 mux_id,
 		}
 	}
 
-	res = snprintf(alert_msg, IPA_QUOTA_REACH_ALERT_MAX_SIZE,
+	res = scnprintf(alert_msg, IPA_QUOTA_REACH_ALERT_MAX_SIZE,
 			"ALERT_NAME=%s", "quotaReachedAlert");
 	if (res >= IPA_QUOTA_REACH_ALERT_MAX_SIZE) {
 		IPAWANERR("message too long (%d)", res);
@@ -3124,10 +3096,10 @@ void ipa_broadcast_quota_reach_ind(u32 mux_id,
 
 	/* posting msg for L-release for CNE */
 	if (upstream_type == IPA_UPSTEAM_MODEM) {
-		res = snprintf(iface_name_l, IPA_QUOTA_REACH_IF_NAME_MAX_SIZE,
+		res = scnprintf(iface_name_l, IPA_QUOTA_REACH_IF_NAME_MAX_SIZE,
 			"UPSTREAM=%s", mux_channel[index].vchannel_name);
 	} else {
-		res = snprintf(iface_name_l, IPA_QUOTA_REACH_IF_NAME_MAX_SIZE,
+		res = scnprintf(iface_name_l, IPA_QUOTA_REACH_IF_NAME_MAX_SIZE,
 			"UPSTREAM=%s", IPA_UPSTEAM_WLAN_IFACE_NAME);
 	}
 	if (res >= IPA_QUOTA_REACH_IF_NAME_MAX_SIZE) {
@@ -3137,10 +3109,10 @@ void ipa_broadcast_quota_reach_ind(u32 mux_id,
 
 	/* posting msg for M-release for CNE */
 	if (upstream_type == IPA_UPSTEAM_MODEM) {
-		res = snprintf(iface_name_m, IPA_QUOTA_REACH_IF_NAME_MAX_SIZE,
+		res = scnprintf(iface_name_m, IPA_QUOTA_REACH_IF_NAME_MAX_SIZE,
 			"INTERFACE=%s", mux_channel[index].vchannel_name);
 	} else {
-		res = snprintf(iface_name_m, IPA_QUOTA_REACH_IF_NAME_MAX_SIZE,
+		res = scnprintf(iface_name_m, IPA_QUOTA_REACH_IF_NAME_MAX_SIZE,
 			"INTERFACE=%s", IPA_UPSTEAM_WLAN_IFACE_NAME);
 	}
 	if (res >= IPA_QUOTA_REACH_IF_NAME_MAX_SIZE) {

@@ -2477,6 +2477,14 @@ int adreno_reset(struct kgsl_device *device, int fault)
 		}
 	}
 	if (ret) {
+		unsigned long flags = device->pwrctrl.ctrl_flags;
+
+		/*
+		 * Clear ctrl_flags to ensure clocks and regulators are
+		 * turned off
+		 */
+		device->pwrctrl.ctrl_flags = 0;
+
 		/* If soft reset failed/skipped, then pull the power */
 		kgsl_pwrctrl_change_state(device, KGSL_STATE_INIT);
 		/* since device is officially off now clear start bit */
@@ -2494,6 +2502,8 @@ int adreno_reset(struct kgsl_device *device, int fault)
 					break;
 			}
 		}
+
+		device->pwrctrl.ctrl_flags = flags;
 	}
 	if (ret)
 		return ret;
@@ -3401,29 +3411,34 @@ int adreno_gmu_fenced_write(struct adreno_device *adreno_dev,
 		 * was successful
 		 */
 		if (!(status & fence_mask))
-			return 0;
+			break;
+
 		/* Wait a small amount of time before trying again */
 		udelay(GMU_CORE_WAKEUP_DELAY_US);
 
 		/* Try to write the fenced register again */
 		adreno_writereg(adreno_dev, offset, val);
-
-		if (i == GMU_CORE_SHORT_WAKEUP_RETRY_LIMIT)
-			dev_err(device->dev,
-				"Waited %d usecs to write fenced register 0x%x, status 0x%x. Continuing to wait...\n",
-				(GMU_CORE_SHORT_WAKEUP_RETRY_LIMIT *
-				GMU_CORE_WAKEUP_DELAY_US),
-				reg_offset, status);
 	}
 
-	ts2 = gmu_core_dev_read_ao_counter(device);
-	dev_err(device->dev,
-		"fenced write for 0x%x timed out in %dus. timestamps %llu %llu, status 0x%x\n",
-		reg_offset,
-		GMU_CORE_LONG_WAKEUP_RETRY_LIMIT * GMU_CORE_WAKEUP_DELAY_US,
-		ts1, ts2, status);
+	if (i < GMU_CORE_SHORT_WAKEUP_RETRY_LIMIT)
+		return 0;
 
-	return -ETIMEDOUT;
+	ts2 = gmu_core_dev_read_ao_counter(device);
+
+	if (i == GMU_CORE_LONG_WAKEUP_RETRY_LIMIT) {
+		dev_err(device->dev,
+			"Timed out waiting %d usecs to write fenced register 0x%x, timestamps %llu %llu, status 0x%x\n",
+			i * GMU_CORE_WAKEUP_DELAY_US,
+			reg_offset, ts1, ts2, status);
+
+		return -ETIMEDOUT;
+	}
+
+	dev_err(device->dev,
+		"Waited %d usecs to write fenced register 0x%x. status 0x%x\n",
+		i * GMU_CORE_WAKEUP_DELAY_US, reg_offset, status);
+
+	return 0;
 }
 
 bool adreno_is_cx_dbgc_register(struct kgsl_device *device,

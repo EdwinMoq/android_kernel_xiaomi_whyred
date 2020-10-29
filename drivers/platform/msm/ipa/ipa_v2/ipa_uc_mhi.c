@@ -596,7 +596,7 @@ int ipa2_uc_mhi_init(void (*ready_cb)(void), void (*wakeup_request_cb)(void))
 
 void ipa2_uc_mhi_cleanup(void)
 {
-	struct ipa_uc_hdlrs null_hdlrs = { NULL };
+	struct ipa_uc_hdlrs null_hdlrs = { 0 };
 
 	IPADBG("Enter\n");
 
@@ -634,14 +634,13 @@ int ipa_uc_mhi_init_engine(struct ipa_mhi_msi_info *msi, u32 mmio_addr,
 	}
 
 	mem.size = sizeof(*init_cmd_data);
-	mem.base = dma_alloc_coherent(ipa_ctx->pdev, mem.size, &mem.phys_base,
+	mem.base = dma_zalloc_coherent(ipa_ctx->pdev, mem.size, &mem.phys_base,
 		GFP_KERNEL);
 	if (!mem.base) {
 		IPAERR("fail to alloc DMA buff of size %d\n", mem.size);
 		res = -ENOMEM;
 		goto disable_clks;
 	}
-	memset(mem.base, 0, mem.size);
 	init_cmd_data = (struct IpaHwMhiInitCmdData_t *)mem.base;
 	init_cmd_data->msiAddress = msi->addr_low;
 	init_cmd_data->mmioBaseAddress = mmio_addr;

@@ -5336,8 +5336,8 @@ int ipa3_cfg_ep_holb(u32 clnt_hdl, const struct ipa_ep_cfg_holb *ep_holb)
 	ipa3_ctx->ep[clnt_hdl].holb.en = IPA_HOLB_TMR_EN;
 	ipahal_write_reg_n_fields(IPA_ENDP_INIT_HOL_BLOCK_EN_n,
 		clnt_hdl, ep_holb);
-	/* IPA4.5 issue requires HOLB_EN to be written twice */
-	if (ipa3_ctx->ipa_hw_type >= IPA_HW_v4_5)
+	/* For targets > IPA_4.0 issue requires HOLB_EN to be written twice */
+	if (ipa3_ctx->ipa_hw_type >= IPA_HW_v4_0)
 		ipahal_write_reg_n_fields(IPA_ENDP_INIT_HOL_BLOCK_EN_n,
 			clnt_hdl, ep_holb);
 
@@ -7645,13 +7645,9 @@ static bool ipa3_gsi_channel_is_quite(struct ipa3_ep_context *ep)
 	bool empty;
 
 	gsi_is_channel_empty(ep->gsi_chan_hdl, &empty);
-	if (!empty) {
+	if (!empty)
 		IPADBG("ch %ld not empty\n", ep->gsi_chan_hdl);
-		/* queue a work to start polling if don't have one */
-		atomic_set(&ipa3_ctx->transport_pm.eot_activity, 1);
-		if (!atomic_read(&ep->sys->curr_polling_state))
-			__ipa_gsi_irq_rx_scedule_poll(ep->sys);
-	}
+	/*Schedule NAPI only from interrupt context to avoid race conditions*/
 	return empty;
 }
 

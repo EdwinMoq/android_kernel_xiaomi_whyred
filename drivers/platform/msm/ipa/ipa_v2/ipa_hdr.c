@@ -38,14 +38,13 @@ static int ipa_generate_hdr_hw_tbl(struct ipa_mem_buffer *mem)
 	}
 	IPADBG_LOW("tbl_sz=%d\n", ipa_ctx->hdr_tbl.end);
 
-	mem->base = dma_alloc_coherent(ipa_ctx->pdev, mem->size,
+	mem->base = dma_zalloc_coherent(ipa_ctx->pdev, mem->size,
 			&mem->phys_base, GFP_KERNEL);
 	if (!mem->base) {
 		IPAERR("fail to alloc DMA buff of size %d\n", mem->size);
 		return -ENOMEM;
 	}
 
-	memset(mem->base, 0, mem->size);
 	list_for_each_entry(entry, &ipa_ctx->hdr_tbl.head_hdr_entry_list,
 			link) {
 		if (entry->is_hdr_proc_ctx)
