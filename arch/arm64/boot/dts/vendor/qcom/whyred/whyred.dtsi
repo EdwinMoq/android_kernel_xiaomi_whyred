@@ -46,13 +46,6 @@
 };
 
 &soc {
-	ant_check {
-		compatible = "ant_check";
-		ant_check_gpio = <&tlmm 74 0x0>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&ant_check_default>;
-	};
-
 	hall_switch {
 	    compatible = "hall-switch,och175";
 	    pinctrl-names = "hall_active","hall_suspend";

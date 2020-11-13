@@ -79,23 +79,6 @@
 		};
 	};
 
-	ant-check-pin {
-		ant_check_default: ant_check_default {
-			mux {
-				pins = "gpio74";
-				function = "gpio";
-			};
-
-			config {
-				pins = "gpio74";
-				drive-strength = <2>;
-				bias-disable;
-				input-enable;
-				input-debounce = <5000>;
-			};
-		};
-	};
-
 	wcd_usbc_analog_en2n {
 		wcd_usbc_analog_en2n_idle: wcd_usbc_ana_en2n_idle {
 			mux {
