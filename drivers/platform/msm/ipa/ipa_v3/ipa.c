@@ -1565,7 +1565,6 @@ static long ipa3_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	struct ipa_ioc_v4_nat_del nat_del;
 	struct ipa_ioc_nat_ipv6ct_table_del table_del;
 	struct ipa_ioc_nat_pdn_entry mdfy_pdn;
-	struct ipa_ioc_rm_dependency rm_depend;
 	struct ipa_ioc_nat_dma_cmd *table_dma_cmd;
 	struct ipa_ioc_get_vlan_mode vlan_mode;
 	struct ipa_ioc_wigig_fst_switch fst_switch;
@@ -2405,31 +2404,15 @@ static long ipa3_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		}
 		break;
 	case IPA_IOC_RM_ADD_DEPENDENCY:
-		/* deprecate if IPA PM is used */
-		if (ipa3_ctx->use_ipa_pm)
-			return -EINVAL;
+		/* IPA RM is deprecate because IPA PM is used */
+		IPAERR("using obselete command: IPA_IOC_RM_ADD_DEPENDENCY");
+		return -EINVAL;
 
-		if (copy_from_user(&rm_depend, (const void __user *)arg,
-			sizeof(struct ipa_ioc_rm_dependency))) {
-			retval = -EFAULT;
-			break;
-		}
-		retval = ipa_rm_add_dependency_from_ioctl(
-			rm_depend.resource_name, rm_depend.depends_on_name);
-		break;
 	case IPA_IOC_RM_DEL_DEPENDENCY:
-		/* deprecate if IPA PM is used */
-		if (ipa3_ctx->use_ipa_pm)
-			return -EINVAL;
+		/* IPA RM is deprecate because IPA PM is used */
+		IPAERR("using obselete command: IPA_IOC_RM_DEL_DEPENDENCY");
+		return -EINVAL;
 
-		if (copy_from_user(&rm_depend, (const void __user *)arg,
-			sizeof(struct ipa_ioc_rm_dependency))) {
-			retval = -EFAULT;
-			break;
-		}
-		retval = ipa_rm_delete_dependency_from_ioctl(
-			rm_depend.resource_name, rm_depend.depends_on_name);
-		break;
 	case IPA_IOC_GENERATE_FLT_EQ:
 		{
 			struct ipa_ioc_generate_flt_eq flt_eq;
@@ -4891,8 +4874,7 @@ void ipa3_disable_clks(void)
 
 	ipa3_ctx->ctrl->ipa3_disable_clks();
 
-	if (ipa3_ctx->use_ipa_pm)
-		ipa_pm_set_clock_index(0);
+	ipa_pm_set_clock_index(0);
 
 	if (msm_bus_scale_client_update_request(ipa3_ctx->ipa_bus_hdl, 0))
 		WARN(1, "bus scaling failed");
@@ -5424,14 +5406,12 @@ void ipa3_suspend_handler(enum ipa_irq_type interrupt,
 				void *private_data,
 				void *interrupt_data)
 {
-	enum ipa_rm_resource_name resource;
 	u32 suspend_data =
 		((struct ipa_tx_suspend_irq_data *)interrupt_data)->endpoints;
 	u32 bmsk = 1;
 	u32 i = 0;
 	int res;
 	struct ipa_ep_cfg_holb holb_cfg;
-	struct mutex *pm_mutex_ptr = &ipa3_ctx->transport_pm.transport_pm_mutex;
 	u32 pipe_bitmask = 0;
 
 	IPADBG("interrupt=%d, interrupt_data=%u\n",
@@ -5440,55 +5420,13 @@ void ipa3_suspend_handler(enum ipa_irq_type interrupt,
 
 	for (i = 0; i < ipa3_ctx->ipa_num_pipes; i++, bmsk = bmsk << 1) {
 		if ((suspend_data & bmsk) && (ipa3_ctx->ep[i].valid)) {
-			if (ipa3_ctx->use_ipa_pm) {
 				pipe_bitmask |= bmsk;
-				continue;
-			}
-			if (IPA_CLIENT_IS_APPS_CONS(ipa3_ctx->ep[i].client)) {
-				/*
-				 * pipe will be unsuspended as part of
-				 * enabling IPA clocks
-				 */
-				mutex_lock(pm_mutex_ptr);
-				if (!atomic_read(
-					&ipa3_ctx->transport_pm.dec_clients)
-					) {
-					IPA_ACTIVE_CLIENTS_INC_EP(
-						ipa3_ctx->ep[i].client);
-					IPADBG_LOW("Pipes un-suspended.\n");
-					IPADBG_LOW("Enter poll mode.\n");
-					atomic_set(
-					&ipa3_ctx->transport_pm.dec_clients,
-					1);
-					/*
-					 * acquire wake lock as long as suspend
-					 * vote is held
-					 */
-					ipa3_inc_acquire_wakelock();
-					ipa3_process_irq_schedule_rel();
-				}
-				mutex_unlock(pm_mutex_ptr);
-			} else {
-				resource = ipa3_get_rm_resource_from_ep(i);
-				res =
-				ipa_rm_request_resource_with_timer(resource);
-				if (res == -EPERM &&
-					IPA_CLIENT_IS_CONS(
-					   ipa3_ctx->ep[i].client)) {
-					holb_cfg.en = 1;
-					res = ipa3_cfg_ep_holb_by_client(
-					   ipa3_ctx->ep[i].client, &holb_cfg);
-					WARN(res, "holb en failed\n");
-				}
-			}
 		}
 	}
-	if (ipa3_ctx->use_ipa_pm) {
-		res = ipa_pm_handle_suspend(pipe_bitmask);
-		if (res) {
-			IPAERR("ipa_pm_handle_suspend failed %d\n", res);
-			return;
-		}
+	res = ipa_pm_handle_suspend(pipe_bitmask);
+	if (res) {
+		IPAERR("ipa_pm_handle_suspend failed %d\n", res);
+		return;
 	}
 }
 
@@ -6573,7 +6511,7 @@ static int ipa3_lan_poll(struct napi_struct *napi, int budget)
  * Initialize the filter block by committing IPV4 and IPV6 default rules
  * Create empty routing table in system memory(no committing)
  * Create a char-device for IPA
- * Initialize IPA RM (resource manager)
+ * Initialize IPA PM (power manager)
  * Configure GSI registers (in GSI case)
  */
 static int ipa3_pre_init(const struct ipa3_plat_drv_res *resource_p,
@@ -7029,30 +6967,13 @@ static int ipa3_pre_init(const struct ipa3_plat_drv_res *resource_p,
 	spin_lock_init(&ipa3_ctx->wakelock_ref_cnt.spinlock);
 
 	/* Initialize Power Management framework */
-	if (ipa3_ctx->use_ipa_pm) {
-		result = ipa_pm_init(&ipa3_res.pm_init);
-		if (result) {
-			IPAERR("IPA PM initialization failed (%d)\n", -result);
-			result = -ENODEV;
-			goto fail_ipa_rm_init;
-		}
-		IPADBG("IPA resource manager initialized");
-	} else {
-		result = ipa_rm_initialize();
-		if (result) {
-			IPAERR("RM initialization failed (%d)\n", -result);
-			result = -ENODEV;
-			goto fail_ipa_rm_init;
-		}
-		IPADBG("IPA resource manager initialized");
-
-		result = ipa3_create_apps_resource();
-		if (result) {
-			IPAERR("Failed to create APPS_CONS resource\n");
-			result = -ENODEV;
-			goto fail_create_apps_resource;
-		}
+	result = ipa_pm_init(&ipa3_res.pm_init);
+	if (result) {
+		IPAERR("IPA PM initialization failed (%d)\n", -result);
+		result = -ENODEV;
+		goto fail_ipa_pm_init;
 	}
+	IPADBG("IPA power manager initialized\n");
 
 	INIT_LIST_HEAD(&ipa3_ctx->ipa_ready_cb_list);
 
@@ -7133,14 +7054,10 @@ fail_cdev_add:
 fail_gsi_pre_fw_load_init:
 	ipa3_dma_shutdown();
 fail_ipa_dma_setup:
-	if (ipa3_ctx->use_ipa_pm)
-		ipa_pm_destroy();
-	else
-		ipa_rm_delete_resource(IPA_RM_RESOURCE_APPS_CONS);
-fail_create_apps_resource:
-	if (!ipa3_ctx->use_ipa_pm)
-		ipa_rm_exit();
-fail_ipa_rm_init:
+	ipa_pm_destroy();
+fail_ipa_pm_init:
+	wakeup_source_unregister(ipa3_ctx->w_lock);
+	ipa3_ctx->w_lock = NULL;
 fail_w_source_register:
 	device_destroy(ipa3_ctx->cdev.class, ipa3_ctx->cdev.dev_num);
 fail_device_create:
@@ -7219,8 +7136,6 @@ static int get_ipa_dts_pm_info(struct platform_device *pdev,
 	ipa_drv_res->use_ipa_pm = of_property_read_bool(pdev->dev.of_node,
 		"qcom,use-ipa-pm");
 	IPADBG("use_ipa_pm=%d\n", ipa_drv_res->use_ipa_pm);
-	if (!ipa_drv_res->use_ipa_pm)
-		return 0;
 
 	result = of_property_read_u32(pdev->dev.of_node,
 		"qcom,msm-bus,num-cases",
@@ -8393,16 +8308,8 @@ int ipa3_ap_suspend(struct device *dev)
 		}
 	}
 
-	if (ipa3_ctx->use_ipa_pm) {
-		ipa_pm_deactivate_all_deferred();
-	} else {
-		/*
-		 * Release transport IPA resource without waiting
-		 * for inactivity timer
-		 */
-		atomic_set(&ipa3_ctx->transport_pm.eot_activity, 0);
-		ipa3_transport_release_resource(NULL);
-	}
+	ipa_pm_deactivate_all_deferred();
+
 	IPADBG("Exit\n");
 
 	return 0;

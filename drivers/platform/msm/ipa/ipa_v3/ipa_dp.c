@@ -857,10 +857,7 @@ static void ipa3_handle_rx(struct ipa3_sys_context *sys)
 	int cnt;
 	int ret;
 
-	if (ipa3_ctx->use_ipa_pm)
-		ipa_pm_activate_sync(sys->pm_hdl);
-	else
-		IPA_ACTIVE_CLIENTS_INC_SIMPLE();
+	ipa_pm_activate_sync(sys->pm_hdl);
 start_poll:
 	inactive_cycles = 0;
 	do {
@@ -889,10 +886,7 @@ start_poll:
 	if (ret == -GSI_STATUS_PENDING_IRQ)
 		goto start_poll;
 
-	if (ipa3_ctx->use_ipa_pm)
-		ipa_pm_deferred_deactivate(sys->pm_hdl);
-	else
-		IPA_ACTIVE_CLIENTS_DEC_SIMPLE();
+	ipa_pm_deferred_deactivate(sys->pm_hdl);
 }
 
 static void ipa3_switch_to_intr_rx_work_func(struct work_struct *work)
@@ -1076,12 +1070,12 @@ int ipa3_setup_sys_pipe(struct ipa_sys_connect_params *sys_in, u32 *clnt_hdl)
 		ep->sys->db_timer.function = ipa3_ring_doorbell_timer_fn;
 
 		/* create IPA PM resources for handling polling mode */
-		if (ipa3_ctx->use_ipa_pm && sys_in->client == IPA_CLIENT_APPS_WAN_CONS &&
+		if (sys_in->client == IPA_CLIENT_APPS_WAN_CONS &&
 			coal_ep_id != IPA_EP_NOT_ALLOCATED &&
 			ipa3_ctx->ep[coal_ep_id].valid == 1) {
 			/* Use coalescing pipe PM handle for default pipe also*/
 			ep->sys->pm_hdl = ipa3_ctx->ep[coal_ep_id].sys->pm_hdl;
-		} else if (ipa3_ctx->use_ipa_pm && IPA_CLIENT_IS_CONS(sys_in->client)) {
+		} else if (IPA_CLIENT_IS_CONS(sys_in->client)) {
 			pm_reg.name = ipa_clients_strings[sys_in->client];
 			pm_reg.callback = ipa_pm_sys_pipe_cb;
 			pm_reg.user_data = ep->sys;
@@ -1301,8 +1295,7 @@ fail_page_recycle_repl:
 		kfree(ep->sys->page_recycle_repl);
 	}
 fail_gen2:
-	if (ipa3_ctx->use_ipa_pm)
-		ipa_pm_deregister(ep->sys->pm_hdl);
+	ipa_pm_deregister(ep->sys->pm_hdl);
 fail_pm:
 	destroy_workqueue(ep->sys->tasklet_wq);
 fail_wq3:
@@ -1825,10 +1818,7 @@ static void ipa3_wq_handle_rx(struct work_struct *work)
 	sys = container_of(work, struct ipa3_sys_context, work);
 
 	if (sys->napi_obj) {
-		if (!ipa3_ctx->use_ipa_pm)
-			IPA_ACTIVE_CLIENTS_INC_SPECIAL("NAPI");
-		else
-			ipa_pm_activate_sync(sys->pm_hdl);
+		ipa_pm_activate_sync(sys->pm_hdl);
 		napi_schedule(sys->napi_obj);
 		IPA_STATS_INC_CNT(sys->napi_sch_cnt);
 	} else
@@ -4436,29 +4426,16 @@ void __ipa_gsi_irq_rx_scedule_poll(struct ipa3_sys_context *sys)
 	 * pm deactivate is done in wq context
 	 * or after NAPI poll
 	 */
-	if (ipa3_ctx->use_ipa_pm) {
-		clk_off = ipa_pm_activate(sys->pm_hdl);
-		if (!clk_off && sys->napi_obj) {
-			napi_schedule(sys->napi_obj);
-			return;
-		}
-		queue_work(sys->wq, &sys->work);
+
+	clk_off = ipa_pm_activate(sys->pm_hdl);
+	if (!clk_off && sys->napi_obj) {
+		napi_schedule(sys->napi_obj);
+		IPA_STATS_INC_CNT(sys->napi_sch_cnt);
 		return;
 	}
-
-	if (sys->napi_obj) {
-		struct ipa_active_client_logging_info log;
-
-		IPA_ACTIVE_CLIENTS_PREP_SPECIAL(log, "NAPI");
-		clk_off = ipa3_inc_client_enable_clks_no_block(
-			&log);
-		if (!clk_off) {
-			napi_schedule(sys->napi_obj);
-			return;
-		}
-	}
-
 	queue_work(sys->wq, &sys->work);
+	return;
+
 }
 
 static void ipa_gsi_irq_rx_notify_cb(struct gsi_chan_xfer_notify *notify)
@@ -5117,17 +5094,12 @@ start_poll:
 		if (ret == -GSI_STATUS_PENDING_IRQ &&
 				napi_reschedule(ep->sys->napi_obj))
 			goto start_poll;
-
-		if (ipa3_ctx->use_ipa_pm)
-			ipa_pm_deferred_deactivate(ep->sys->pm_hdl);
-		else
-			ipa3_dec_client_disable_clks_no_block(&log);
+		ipa_pm_deferred_deactivate(ep->sys->pm_hdl);
 	} else {
 		cnt = weight;
 		IPADBG_LOW("Client = %d not replenished free descripotrs\n",
 				ep->client);
 	}
-
 	return cnt;
 }
 
