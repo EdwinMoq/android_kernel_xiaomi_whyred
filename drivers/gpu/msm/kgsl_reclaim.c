@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2020, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2020-2021, The Linux Foundation. All rights reserved.
  */
 
 #include <linux/kthread.h>
@@ -200,7 +200,6 @@ static int kgsl_reclaim_callback(struct notifier_block *nb,
 	struct kgsl_mem_entry *entry;
 	struct kgsl_memdesc *memdesc;
 	int valid_entry, next = 0, ret;
-	u64 mapsize;
 
 	process = kgsl_process_private_find(pid);
 	if (!process)
@@ -276,9 +275,6 @@ static int kgsl_reclaim_callback(struct notifier_block *nb,
 			memdesc->reclaimed_page_count += memdesc->page_count;
 			atomic_add(memdesc->page_count,
 					&process->reclaimed_page_count);
-			mapsize = atomic_long_read(&memdesc->mapsize);
-			atomic_long_sub(mapsize, &memdesc->mapsize);
-			atomic_long_sub(mapsize, &process->gpumem_mapped);
 		}
 
 		kgsl_mem_entry_put(entry);
