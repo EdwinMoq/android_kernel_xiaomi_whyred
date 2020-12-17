@@ -387,18 +387,6 @@ config USB_CONFIGFS_MBIM_BAM
 	   Mbim interface is an alternative to standard CDC-ECM and windows
 	   RNDIS.
 
-config USB_CONFIGFS_RMNET_BAM
-       bool "RMNET_BAM"
-       depends on USB_CONFIGFS
-       select USB_F_RMNET_BAM
-       help
-          RmNet interface is a new logical device in QMI framework for data
-          services. RmNet in accordance with QMI architecture uses Data I/O
-          channel for IP data transfer and control I/O channel for QMI
-          messaging (functionality similar to AT commands).
-          RmNet interface is an alternative to standard CDC-ECM and windows
-          RNDIS.
-
 config USB_CONFIGFS_EEM
 	bool "Ethernet Emulation Model (EEM)"
 	depends on USB_CONFIGFS
