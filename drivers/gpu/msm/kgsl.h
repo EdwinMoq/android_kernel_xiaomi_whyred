@@ -228,10 +228,6 @@ struct kgsl_memdesc {
 	unsigned int cur_bindings;
 	struct file *shmem_filp;
 	/**
-	 * @vma: Pointer to the vm_area_struct this memdesc is mapped to
-	 */
-	struct vm_area_struct *vma;
-	/**
 	 * @lock: Spinlock to protect the pages array
 	 */
 	spinlock_t lock;
