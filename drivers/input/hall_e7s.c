@@ -7,7 +7,7 @@
 #include <linux/input.h>
 #include <linux/interrupt.h>
 #include <linux/gpio.h>
-#include <linux/wakelock.h>
+//#include <linux/wakelock.h>
 #include <linux/delay.h>
 #include <linux/of_gpio.h>
 #include <linux/of_device.h>
@@ -195,7 +195,7 @@ static int hall_probe(struct platform_device *pdev)
 	input_set_capability(hall_info->ipdev, EV_KEY, KEY_HALL_OPEN);
 	input_set_capability(hall_info->ipdev, EV_KEY, KEY_HALL_CLOSE);
 	input_set_capability(hall_info->ipdev, EV_SW, SW_LID);
-	set_bit(INPUT_PROP_NO_DUMMY_RELEASE, hall_info->ipdev->propbit);
+	//set_bit(INPUT_PROP_NO_DUMMY_RELEASE, hall_info->ipdev->propbit);
 	rc = input_register_device(hall_info->ipdev);
 	if (rc) {
 		pr_err("hall_probe: input_register_device fail rc=%d\n", rc);
