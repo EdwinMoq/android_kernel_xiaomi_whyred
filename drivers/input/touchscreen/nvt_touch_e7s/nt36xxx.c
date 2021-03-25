@@ -26,7 +26,6 @@
 #include <linux/uaccess.h>
 #include <linux/input/mt.h>
 #include <linux/slab.h>
-#include <linux/wakelock.h>
 #include <linux/of_gpio.h>
 #include <linux/of_irq.h>
 
@@ -785,8 +784,6 @@ static int32_t nvt_flash_proc_init(void)
 /* function page definition */
 #define FUNCPAGE_GESTURE         1
 
-static struct wake_lock gestrue_wakelock;
-
 /*******************************************************
 Description:
 	Novatek touchscreen wake up gesture key report function.
@@ -1140,7 +1137,7 @@ static irqreturn_t nvt_ts_irq_handler(int32_t irq, void *dev_id)
 
 #if WAKEUP_GESTURE
 	if (unlikely(bTouchIsAwake == 0)) {
-		wake_lock_timeout(&gestrue_wakelock, msecs_to_jiffies(5000));
+		__pm_wakeup_event(ts->gestrue_wakelock, msecs_to_jiffies(5000));
 	}
 #endif
 
@@ -1385,7 +1382,7 @@ static int32_t nvt_ts_probe(struct i2c_client *client, const struct i2c_device_i
 	for (retry = 0; retry < (sizeof(gesture_key_array) / sizeof(gesture_key_array[0])); retry++) {
 		input_set_capability(ts->input_dev, EV_KEY, gesture_key_array[retry]);
 	}
-	wake_lock_init(&gestrue_wakelock, WAKE_LOCK_SUSPEND, "poll-wake-lock");
+	ts->gestrue_wakelock = wakeup_source_register(NULL, "gestrue_wakelock");
 #endif
 
 	sprintf(ts->phys, "input/ts");
