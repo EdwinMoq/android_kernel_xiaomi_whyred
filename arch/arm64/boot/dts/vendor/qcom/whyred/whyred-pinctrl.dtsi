@@ -79,34 +79,6 @@
 		};
 	};
 
-	wcd_usbc_analog_en2n {
-		wcd_usbc_analog_en2n_idle: wcd_usbc_ana_en2n_idle {
-			mux {
-				pins = "gpio75";
-			};
-
-			config {
-				pins = "gpio75";
-				output-low;
-				/delete-property/ output-high;
-			};
-		};
-
-		wcd_usbc_analog_en2n_active: wcd_usbc_ana_en2n_active {
-			mux {
-				pins = "gpio75";
-			};
-
-			config {
-				pins = "gpio75";
-				bias-disable;
-				output-high;
-				/delete-property/ bias-pull-down;
-				/delete-property/ output-low;
-			};
-		};
-	};
-
 	/* add pri_mi2s for smartpa */
 	pri_mi2s_sck {
 		pri_mi2s_sck_sleep: pri_mi2s_sck_sleep {
