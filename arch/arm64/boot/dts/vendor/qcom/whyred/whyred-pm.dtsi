@@ -106,6 +106,15 @@
 	};
 };
 
+&bcl_sensor {
+	interrupts = <0x0 0x42 0x0 IRQ_TYPE_NONE>,
+			<0x0 0x42 0x2 IRQ_TYPE_NONE>;
+	interrupt-names = "bcl-high-ibat-int",
+			"bcl-low-vbat-int";
+	qcom,vbat-polling-delay-ms = <100>;
+	qcom,ibat-polling-delay-ms = <100>;
+};
+
 &pm660_vadc {
 	backlight_therm {
 		reg = <ADC_AMUX_THM4_PU2>;
