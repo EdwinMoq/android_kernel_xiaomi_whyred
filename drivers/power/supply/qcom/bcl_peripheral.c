@@ -954,7 +954,7 @@ static int bcl_get_devicetree_data(struct platform_device *pdev)
 	const __be32 *prop = NULL;
 	struct device_node *dev_node = pdev->dev.of_node;
 
-	prop = of_get_address_by_name(dev_node, "fg_user_adc", 0, 0);
+	prop = of_get_address(dev_node, 0, NULL, NULL);
 	if (prop) {
 		bcl_perph->base_addr = be32_to_cpu(*prop);
 		pr_debug("fg_user_adc@%04x\n", bcl_perph->base_addr);
@@ -963,8 +963,7 @@ static int bcl_get_devicetree_data(struct platform_device *pdev)
 		return -EINVAL;
 	}
 
-	prop = of_get_address_by_name(dev_node,
-			"pon_spare", 0, 0);
+	prop = NULL; //unused
 	if (prop) {
 		bcl_perph->pon_spare_addr = be32_to_cpu(*prop);
 		pr_debug("pon_spare@%04x\n", bcl_perph->pon_spare_addr);
@@ -1017,8 +1016,7 @@ static int bcl_get_devicetree_data(struct platform_device *pdev)
 			bcl_perph->param[BCL_PARAM_CURRENT].
 			inhibit_derating_ua);
 	} else {
-		prop = of_get_address_by_name(dev_node,
-			"fg_lmh", 0, 0);
+		prop = of_get_address(dev_node, 1, NULL, NULL);
 		if (prop) {
 			bcl_perph->fg_lmh_addr = be32_to_cpu(*prop);
 			pr_debug("fg_lmh@%04x\n", bcl_perph->fg_lmh_addr);
